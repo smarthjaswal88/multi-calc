@@ -1,0 +1,30 @@
+{
+  "name": "multi-calc",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:calc": "npm run build -w @multi-calc/calc",
+    "dev:api": "npm run build:calc && npm run dev -w api",
+    "dev:web": "npm run build:calc && npm run dev -w web",
+    "build:api": "npm run build:calc && npm run build -w api",
+    "build:web": "npm run build:calc && npm run build -w web",
+    "typecheck": "npm run build:calc && npm run typecheck:calc && npm run typecheck:api && npm run typecheck:web",
+    "typecheck:api": "npm run typecheck -w api",
+    "typecheck:calc": "npm run typecheck -w @multi-calc/calc",
+    "typecheck:web": "npm run typecheck -w web",
+    "lint": "npm run lint -w web",
+    "test": "npm run test -w @multi-calc/calc",
+    "test:calc": "npm run test -w @multi-calc/calc",
+    "test:watch": "npm run test:watch -w @multi-calc/calc",
+    "verify": "npm run test && npm run typecheck && npm run lint && npm run db:verify && npm run api:verify",
+    "api:verify": "npm run build:calc && npm run verify:api -w api",
+    "db:migrate": "npm run build:calc && npm run migrate -w api",
+    "db:seed": "npm run build:calc && npm run seed -w api",
+    "db:verify": "npm run build:calc && npm run verify:constraints -w api",
+    "db:studio": "npm run studio -w api"
+  }
+}

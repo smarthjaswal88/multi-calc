@@ -1,0 +1,39 @@
+# Local Postgres for development.
+#
+# Why this exists: the hosted database sits in ap-southeast-1 (Singapore). From a laptop in
+# India that is ~100ms per round trip, and a transaction costs three of them — BEGIN, the work,
+# COMMIT — so every write lands around 300ms before the application does anything at all.
+# Measured, not guessed. Neon's pooled endpoint makes no difference, because the cost is
+# distance rather than connection setup.
+#
+# Against this container the same round trip is ~1ms, so a write goes from ~700ms to ~15ms.
+#
+# Production keeps the hosted database, where the API runs in the same region and pays ~1-2ms
+# — so the deployed app is fast for the same reason this container is.
+#
+#   docker compose up -d
+#   # then point apps/api/.env at:
+#   # DATABASE_URL="postgresql://postgres:postgres@localhost:5432/multicalc?schema=public"
+#   npm run db:migrate && npm run db:seed
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: multicalc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: multicalc
+    ports:
+      - '5432:5432'
+    volumes:
+      - multicalc-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d multicalc']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  multicalc-pgdata:
