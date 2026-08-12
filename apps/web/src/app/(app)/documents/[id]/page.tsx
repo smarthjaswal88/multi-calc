@@ -252,7 +252,7 @@ export default function DocumentPage() {
                 <CurrencySelect
                   value={currency}
                   editable={document.currencyEditable}
-                  onChange={(next) =>
+                  onChange={(next: CurrencyCode) =>
                     patchDocument.mutate({ documentId: id, patch: { currency: next } })
                   }
                 />

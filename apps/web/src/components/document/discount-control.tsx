@@ -79,7 +79,7 @@ export function DiscountControl({
         value={value.discountType}
         disabled={disabled}
         aria-label="Discount kind"
-        onValueChange={(next) => {
+        onValueChange={(next: string) => {
           // Radix emits '' when the active item is clicked again; keep the current selection
           // rather than dropping to an unset state the model has no representation for.
           if (next) selectType(next as DiscountType);

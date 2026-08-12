@@ -57,7 +57,7 @@ export function CurrencySelect({ value, editable, onChange, className }: Currenc
   }
 
   return (
-    <Select value={value} onValueChange={(next) => onChange(next as CurrencyCode)}>
+    <Select value={value} onValueChange={(next: string) => onChange(next as CurrencyCode)}>
       <SelectTrigger className={cn('w-[11rem]', className)} aria-label="Document currency">
         <SelectValue />
       </SelectTrigger>

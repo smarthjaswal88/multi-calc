@@ -110,7 +110,7 @@ export default function DocumentsPage() {
   const newDocumentDialog = (
     <Dialog
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={(next: boolean) => {
         setOpen(next);
         // Drop the override on close, so reopening reflects the account default again.
         if (!next) setPickedCurrency(null);
@@ -197,7 +197,7 @@ export default function DocumentsPage() {
         <ToggleGroup
           type="single"
           value={status}
-          onValueChange={(next) => {
+          onValueChange={(next: string) => {
             if (!next) return;
             setStatus(next as StatusFilter);
             setPage(1);
