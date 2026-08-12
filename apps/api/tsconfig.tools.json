@@ -1,0 +1,18 @@
+// Typecheck-only project covering the files the build deliberately excludes.
+//
+// The main tsconfig limits `include` to `src`, because `rootDir`/`outDir` govern what ships in
+// `dist`. That left prisma/seed.ts and scripts/*.ts outside every project — and since both run
+// through tsx in transpile-only mode, nothing verified the boundary between @multi-calc/calc
+// and the generated Prisma client. Renaming a column or dropping an export stayed green in
+// `typecheck` and `build`, then failed at runtime when someone ran the seed.
+//
+// This project emits nothing, so it can span all three directories without a rootDir conflict.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "outDir": null,
+    "rootDir": null
+  },
+  "include": ["src", "prisma", "scripts"]
+}
