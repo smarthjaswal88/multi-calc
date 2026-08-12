@@ -1,0 +1,325 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ==========================================================================================
+   MODERNIST — Swiss-school grid discipline for a numeric instrument.
+
+   Colour encodes meaning, not mood. The three quantities that always appear together each hold
+   a fixed hue everywhere they appear: the line table, the totals rail, the report, and print.
+   A reader learns "amber means something was subtracted" once and it holds.
+
+   The accent is deliberately not red. In an application where red already means "this value is
+   invalid", a red primary button makes the Finalize control and an error border the same
+   colour.
+
+   Dark is a designed system, not an inversion: the ground carries a green tint so the accent
+   family stays coherent, and accent chroma drops so figures do not vibrate on a dark surface.
+   ========================================================================================== */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 0.375rem;
+
+  /* Ground and ink */
+  --background: oklch(0.977 0.002 106);      /* #F7F7F5 paper */
+  --foreground: oklch(0.184 0.008 271);      /* #16181D ink */
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.962 0.003 106);
+  --muted-foreground: oklch(0.512 0.021 269);  /* #697086 */
+
+  /* Ledger green — primary action, focus, grand total */
+  --primary: oklch(0.418 0.077 175);         /* #0C6B58 */
+  --primary-foreground: oklch(0.985 0.002 106);
+
+  --secondary: oklch(0.955 0.004 106);
+  --secondary-foreground: var(--foreground);
+
+  --accent: oklch(0.948 0.012 175);
+  --accent-foreground: var(--primary);
+
+  /* Brick — destructive and validation errors only */
+  --destructive: oklch(0.523 0.176 26.5);    /* #C0362C */
+  --destructive-foreground: oklch(0.985 0.002 106);
+
+  --border: oklch(0.905 0.004 106);
+  --input: oklch(0.878 0.005 106);
+  --ring: var(--primary);
+
+  /* ---- project-specific semantic amounts ---- */
+  --amount-discount: oklch(0.512 0.132 52);  /* #B45309 amber, subtractive */
+  --amount-tax: oklch(0.494 0.176 285);      /* #5B54C9 indigo, additive */
+  --amount-total: var(--primary);
+  --state-draft: var(--primary);
+  --state-finalized: oklch(0.381 0.018 269); /* #3F4652 graphite */
+  --tape-rule: oklch(0.792 0.006 106);
+
+  /* Charts, if one ever earns its place */
+  --chart-1: var(--primary);
+  --chart-2: var(--amount-tax);
+  --chart-3: var(--amount-discount);
+  --chart-4: oklch(0.55 0.09 220);
+  --chart-5: oklch(0.62 0.11 140);
+
+  --sidebar: oklch(0.962 0.003 106);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.932 0.008 175);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: oklch(0.892 0.004 106);
+  --sidebar-ring: var(--primary);
+}
+
+.dark {
+  --background: oklch(0.164 0.008 165);      /* #0C0F0E green-tinted black */
+  --foreground: oklch(0.925 0.005 165);      /* #E8EBE9 */
+
+  --card: oklch(0.205 0.007 190);            /* #14181A */
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.238 0.008 195);         /* #1B2023 */
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.238 0.008 195);
+  --muted-foreground: oklch(0.638 0.017 262); /* #8D95A3 */
+
+  --primary: oklch(0.702 0.099 172);         /* #37B79A lifted */
+  --primary-foreground: oklch(0.164 0.008 165);
+
+  --secondary: oklch(0.252 0.008 195);
+  --secondary-foreground: var(--foreground);
+
+  --accent: oklch(0.288 0.026 172);
+  --accent-foreground: var(--primary);
+
+  --destructive: oklch(0.678 0.148 27);      /* #E56A5D */
+  --destructive-foreground: oklch(0.164 0.008 165);
+
+  --border: oklch(0.298 0.008 195);
+  --input: oklch(0.352 0.009 195);
+  --ring: var(--primary);
+
+  --amount-discount: oklch(0.762 0.108 68);  /* #E0A05A */
+  --amount-tax: oklch(0.678 0.148 289);      /* #8E86F0 */
+  --amount-total: var(--primary);
+  --state-draft: var(--primary);
+  --state-finalized: oklch(0.678 0.017 262); /* #98A0AD */
+  --tape-rule: oklch(0.372 0.009 195);
+
+  --chart-1: var(--primary);
+  --chart-2: var(--amount-tax);
+  --chart-3: var(--amount-discount);
+  --chart-4: oklch(0.68 0.11 220);
+  --chart-5: oklch(0.72 0.12 140);
+
+  --sidebar: oklch(0.188 0.007 180);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.272 0.022 172);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: oklch(0.282 0.008 195);
+  --sidebar-ring: var(--primary);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-amount-discount: var(--amount-discount);
+  --color-amount-tax: var(--amount-tax);
+  --color-amount-total: var(--amount-total);
+  --color-state-draft: var(--state-draft);
+  --color-state-finalized: var(--state-finalized);
+  --color-tape-rule: var(--tape-rule);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Archivo carries the chrome. Every numeral is mono — that pairing is the point. */
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-figures), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Square corners, per the direction. Controls take the smallest radius that still reads as
+     deliberate rather than accidental. */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Headings run tight at large sizes, which is where a compact grotesque earns its keep. */
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  /* Focus is one treatment, applied everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Anything that performs an action reads as clickable.
+     A bare <button> inherits the UA's arrow cursor, which left most of this app's chrome — the
+     row reorder arrows, the delete and expand toggles, the theme switch, every Button variant —
+     looking inert on hover. Stated once here rather than as a class on each control, so a new
+     button is pointer-cursored by default instead of by remembering.
+
+     Radix renders some controls as a div carrying a role, so both forms are listed. Utilities
+     still win over this, because @layer utilities is ordered after base: cursor-help on the line
+     total's tape trigger and cursor-default on the locked currency badge survive untouched. */
+  button:not(:disabled):not([aria-disabled="true"]),
+  summary,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  /* A disabled control is not a target. The arrow says "nothing here" without the scolding tone
+     of not-allowed — and it matches the Button variants, which drop pointer events entirely. */
+  button:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: default;
+  }
+
+  /* Every numeral aligns on the decimal as the user types. Not optional in a pricing tool. */
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* An 11px uppercase micro-label at wide tracking — the only place tracking opens up. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+}
+
+@layer utilities {
+  /* A slim scrollbar for the wide tables.
+     The platform's overlay scrollbar is drawn *on top of* the scroll container's content, so with
+     "all columns" switched on it floats across the bottom row of figures. Styling it opts into a
+     classic scrollbar that occupies its own strip instead of covering one — the overlap goes away
+     because the bar now has somewhere of its own to be, and it is 6px instead of 15px.
+
+     The thumb is inset by a transparent border with background-clip, which is the only way to give
+     a webkit thumb padding, and it carries the muted ink at low opacity rather than a colour of its
+     own, so it holds up in both themes. */
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+
+  .scroll-slim::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+  }
+
+  .scroll-slim::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+    background-clip: padding-box;
+  }
+
+  /* Where the two axes meet, if a container ever scrolls both ways. */
+  .scroll-slim::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* A figure awaiting recomputation by the server. Visible, but not alarming — it happens on
+     every debounced keystroke. */
+  .recalculating {
+    color: var(--muted-foreground);
+    animation: settle 1.2s ease-in-out infinite;
+  }
+
+  @keyframes settle {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 0.8; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recalculating {
+      animation: none;
+      opacity: 0.55;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Print: no chrome, monochrome-safe. Hue semantics fall back to signs and labels. */
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .print-break-avoid { break-inside: avoid; }
+    thead { display: table-header-group; }
+  }
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Pricing Calculator">
+  <!--
+    The same lucide Sigma that marks the sidebar, on a ledger-green tile.
+
+    A bare glyph on transparency would sit at #0C6B58 against a dark browser tab strip and all
+    but disappear, so the mark is knocked out of the fill instead: one opaque shape that holds up
+    on a light or dark tab, and reads as an app icon at 16px. The path is lucide's own geometry
+    (24-unit grid, inset by 4), so the tab and the sidebar cannot drift apart.
+  -->
+  <rect width="32" height="32" rx="7" fill="#0C6B58" />
+  <path
+    d="M18 7V4H6l6 8-6 8h12v-3"
+    transform="translate(4 4)"
+    fill="none"
+    stroke="#FAFAF7"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
