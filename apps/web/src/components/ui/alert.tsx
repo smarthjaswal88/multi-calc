@@ -5,7 +5,6 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-  // Two-column grid collapses to one when no icon is present, so text never needs a manual indent.
   'relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border p-3 text-[0.8125rem] has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-2.5 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:translate-y-0.5 [&>svg]:text-current',
   {
     variants: {

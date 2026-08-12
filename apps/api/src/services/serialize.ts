@@ -1,15 +1,3 @@
-/**
- * Response shapes.
- *
- * Monetary values cross the wire as integers in minor units, and percentages as basis points —
- * the same representation used in the database and the engine. No decimal strings, no floats.
- * The client formats for display using the same @multi-calc/calc functions the server uses, so
- * a figure cannot be rendered under different rules at each end.
- *
- * `currency` travels with every document because a minor-unit integer is meaningless without
- * it: 12400 is ¥12,400 or $124.00 depending entirely on this field.
- */
-
 import type { Document, LineItem } from '../generated/prisma/client.js';
 
 export interface LineResponse {
@@ -41,10 +29,10 @@ export interface DocumentResponse {
   totalTaxMinor: number;
   grandTotalMinor: number;
   finalizedAt: string | null;
-  /** Non-null when the document is archived. Present so a client fetching by id can tell. */
+
   archivedAt: string | null;
   archived: boolean;
-  /** False once a line exists: reinterpreting stored minor units would re-denominate them. */
+
   currencyEditable: boolean;
   lineCount: number;
   lines?: LineResponse[];
@@ -52,7 +40,6 @@ export interface DocumentResponse {
   updatedAt: string;
 }
 
-/** A date column stored as DATE, rendered as YYYY-MM-DD with no time component. */
 function toDateString(value: Date): string {
   return value.toISOString().slice(0, 10);
 }

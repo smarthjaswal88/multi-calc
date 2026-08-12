@@ -1,18 +1,7 @@
-/**
- * Prove the database refuses invalid pricing data.
- *
- * The domain rules are enforced in three places — the interface, the Zod schemas, and the
- * database. This script exercises the last of those directly with raw SQL, bypassing every
- * application-level guard, and asserts that each write is rejected.
- *
- * Run with:  npm run verify:constraints -w api
- */
-
 import 'dotenv/config';
 import { guardDestructive } from '../src/config/guardDestructive.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
-// Writes to the database — refuse to touch production. See src/config/guardDestructive.ts.
 guardDestructive('scripts/verify-constraints.ts');
 
 const prisma = new PrismaClient();
@@ -21,7 +10,7 @@ interface Case {
   name: string;
   constraint: string;
   sql: (documentId: string) => string;
-  /** Some cases target the documents table rather than line_items. */
+
   expectRejected?: boolean;
 }
 
@@ -175,13 +164,7 @@ const CASES: Case[] = [
               0, 0, 0, 0, NOW(), NOW()
        FROM "users" LIMIT 1`,
   },
-  // ---------------------------------------------------------------------------------------
-  // Regression probes for the int4 overflow inside the fixed-discount CHECK.
-  //
-  // Before the bigint cast, these aborted with SQLSTATE 22003 "integer out of range" and no
-  // constraint name, so an error mapper keyed on constraint names returned 500 where a 400
-  // was correct. They must now be refused by a *named* constraint.
-  // ---------------------------------------------------------------------------------------
+
   {
     name: 'a quantity x unit price product that overflows int4 (was a driver range error)',
     constraint: 'line_items_subtotal_within_ceiling',
@@ -220,14 +203,7 @@ const CASES: Case[] = [
     constraint: 'line_items_unit_price_max',
     sql: (id) => insertLine(id, { unitPriceMinor: '2000000001' }),
   },
-  // ---------------------------------------------------------------------------------------
-  // Archive constraints.
-  //
-  // These assert the row-level predicate only — archived implies finalized. They deliberately do
-  // NOT assert restore-preserves-FINALIZED: a row-level CHECK sees only the new row, never the
-  // previous one, so it cannot express a transition rule. That guarantee lives in the unarchive
-  // handler and in verify-api.ts. See docs/archive-feature.md §6.1.
-  // ---------------------------------------------------------------------------------------
+
   {
     name: 'archiving a DRAFT document',
     constraint: 'documents_archived_only_when_finalized',
@@ -260,7 +236,6 @@ const CASES: Case[] = [
   },
 ];
 
-/** A control case: a valid line must be accepted, or the probe proves nothing. */
 const CONTROL: Case = {
   name: 'CONTROL — a valid line is accepted',
   constraint: '(none)',
@@ -288,8 +263,6 @@ async function main() {
     let rejected = false;
     let detail = '';
 
-    // Each probe runs inside a transaction that always rolls back, so a probe that is
-    // wrongly accepted still leaves no residue in the database.
     try {
       await prisma.$transaction(async (tx) => {
         await tx.$executeRawUnsafe(testCase.sql(document.id));
@@ -298,7 +271,7 @@ async function main() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('__ROLLBACK__')) {
-        rejected = false; // the insert succeeded; only our sentinel unwound it
+        rejected = false;
       } else {
         rejected = true;
         detail =

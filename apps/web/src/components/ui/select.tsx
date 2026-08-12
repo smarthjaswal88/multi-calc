@@ -31,7 +31,6 @@ const SelectTrigger = React.forwardRef<
 ));
 SelectTrigger.displayName = 'SelectTrigger';
 
-// Not exported: the scroll affordances are an internal detail of SelectContent.
 const SelectScrollUpButton = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.ScrollUpButton>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
@@ -71,7 +70,7 @@ const SelectContent = React.forwardRef<
       sideOffset={position === 'popper' ? sideOffset : undefined}
       className={cn(
         'relative z-50 max-h-(--radix-select-content-available-height) min-w-32 overflow-hidden rounded-md border border-border bg-popover text-foreground shadow-md',
-        // Focus lands on the highlighted item, so the panel itself takes no ring.
+
         'outline-none',
         'origin-(--radix-select-content-transform-origin)',
         'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
@@ -97,7 +96,6 @@ const SelectLabel = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
 >(({ className, ...props }, ref) => (
-  // `eyebrow` is the project's 11px uppercase micro-label, defined in globals.css.
   <SelectPrimitive.Label ref={ref} className={cn('eyebrow px-2 py-1.5', className)} {...props} />
 ));
 SelectLabel.displayName = 'SelectLabel';

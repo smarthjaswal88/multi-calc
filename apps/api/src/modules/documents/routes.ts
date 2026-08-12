@@ -29,19 +29,10 @@ import type { Prisma } from '../../generated/prisma/client.js';
 
 export const documentsRouter = Router();
 
-/** Parse a YYYY-MM-DD string into the UTC midnight a DATE column round-trips to. */
 function toUtcDate(value: string): Date {
   return new Date(`${value}T00:00:00Z`);
 }
 
-/**
- * Escape the LIKE metacharacters before a search term reaches Prisma's `contains`.
- *
- * `contains` compiles to LIKE, where `%` matches any run of characters and `_` matches any single
- * one. So searching for the literal text "50%" matched every title containing "50" followed by
- * anything — a search for a discount label quietly returned unrelated documents. Backslash goes
- * first, or it would escape the escapes added after it.
- */
 function escapeLike(term: string): string {
   return term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
@@ -63,9 +54,6 @@ function orderByFor(sort: ListQuery['sort']): Prisma.DocumentOrderByWithRelation
   }
 }
 
-// ---------------------------------------------------------------------------------------
-// GET /documents — the list
-// ---------------------------------------------------------------------------------------
 documentsRouter.get(
   '/',
   validate(listQuerySchema, 'query'),
@@ -74,9 +62,7 @@ documentsRouter.get(
 
     const where: Prisma.DocumentWhereInput = {
       userId: req.userId,
-      // Archived documents are excluded unless explicitly asked for. `archived=true` is how the
-      // Archive screen fetches; there is deliberately no "both" mode, because a list mixing the
-      // two would need a column to tell them apart and the point of archiving is separation.
+
       archivedAt: query.archived ? { not: null } : null,
       ...(query.status !== 'all'
         ? { status: query.status === 'draft' ? ('DRAFT' as const) : ('FINALIZED' as const) }
@@ -121,9 +107,6 @@ documentsRouter.get(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// POST /documents — create a draft
-// ---------------------------------------------------------------------------------------
 documentsRouter.post(
   '/',
   validate(createDocumentSchema),
@@ -135,8 +118,6 @@ documentsRouter.post(
       currency?: string;
     };
 
-    // Falls back to the user's last choice, so someone who works in one currency never picks it
-    // twice.
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     const currency =
       body.currency ??
@@ -158,9 +139,6 @@ documentsRouter.post(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// GET /documents/:id
-// ---------------------------------------------------------------------------------------
 documentsRouter.get(
   '/:id',
   loadDocument,
@@ -169,9 +147,6 @@ documentsRouter.get(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// PATCH /documents/:id — metadata, and the currency lock
-// ---------------------------------------------------------------------------------------
 documentsRouter.patch(
   '/:id',
   loadDocument,
@@ -187,13 +162,6 @@ documentsRouter.patch(
     };
 
     const updated = await prisma.$transaction(async (tx) => {
-      // The currency lock, checked against the LOCKED line set.
-      //
-      // It previously read document.lines.length from the unlocked loadDocument snapshot, which is
-      // the one mutation left outside the lock. Two tabs — one holding a 0-line draft, one adding a
-      // line — could land a currency change beside a new line, producing exactly the hundredfold
-      // re-denomination this rule exists to prevent: 10000 minor units means $100.00 as USD and
-      // ¥10,000 as JPY.
       const lines = await lockDocumentAndReadLines(tx, document.id);
 
       if (patch.currency && patch.currency !== document.currency && lines.length > 0) {
@@ -214,8 +182,6 @@ documentsRouter.patch(
       });
     });
 
-    // Changing currency does not change any stored amount — only how it is read. Totals are
-    // unaffected, so no recompute is needed here.
     if (patch.currency && patch.currency !== document.currency) {
       await prisma.user.update({
         where: { id: req.userId },
@@ -227,23 +193,16 @@ documentsRouter.patch(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// DELETE /documents/:id — drafts only
-// ---------------------------------------------------------------------------------------
 documentsRouter.delete(
   '/:id',
   loadDocument,
   requireDraft,
   handler(async (req, res) => {
-    // Lines cascade.
     await prisma.document.delete({ where: { id: req.document!.id } });
     res.status(204).end();
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// POST /documents/:id/finalize
-// ---------------------------------------------------------------------------------------
 documentsRouter.post(
   '/:id/finalize',
   loadDocument,
@@ -251,9 +210,6 @@ documentsRouter.post(
   handler(async (req, res) => {
     const document = req.document!;
 
-    // Read under the lock before validating: preconditions checked against a pre-transaction
-    // snapshot could pass while a concurrent edit makes them false, freezing a document that
-    // should have been refused.
     const lockedLines = await prisma.$transaction((tx) =>
       lockDocumentAndReadLines(tx, document.id),
     );
@@ -268,8 +224,6 @@ documentsRouter.post(
     );
 
     if (issues.length > 0) {
-      // Every problem at once, each naming its line, so the interface can list them with links
-      // rather than making the user fix them one at a time.
       throw new PreconditionFailedError(
         issues.length === 1
           ? issues[0]!.message
@@ -283,10 +237,6 @@ documentsRouter.post(
     }
 
     const finalized = await prisma.$transaction(async (tx) => {
-      // Recompute once more before closing the record, so the frozen figures are provably the
-      // engine's current output rather than whatever was last written.
-      // Re-locked and re-read inside the writing transaction. The precondition check above used a
-      // separate transaction, so this is the set that actually gets frozen.
       const lines = await lockDocumentAndReadLines(tx, document.id);
       const result = await recompute(tx, document.id, lines);
 
@@ -302,26 +252,12 @@ documentsRouter.post(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// POST /documents/:id/duplicate — the only route from a closed record back to an editable one
-// ---------------------------------------------------------------------------------------
 documentsRouter.post(
   '/:id/duplicate',
   loadDocument,
   handler(async (req, res) => {
     const source = req.document!;
 
-    /**
-     * "Today" from the caller's perspective, not the server's.
-     *
-     * `new Date().toISOString()` is UTC, so for a user in IST every duplicate created before 05:30
-     * local time was stamped with yesterday's date — silently filing it into the previous day's
-     * reporting range.
-     *
-     * The request carries no timezone, so the client may state the date it means; the UTC date
-     * remains the fallback. Documented limitation rather than a silent off-by-one: a client that
-     * sends nothing still gets UTC.
-     */
     const requestedDate =
       typeof (req.body as { issueDate?: unknown } | undefined)?.issueDate === 'string'
         ? (req.body as { issueDate: string }).issueDate
@@ -332,7 +268,6 @@ documentsRouter.post(
         : new Date().toISOString().slice(0, 10);
 
     const copy = await prisma.$transaction(async (tx) => {
-      // Lock the source so a concurrent edit cannot be copied half-applied.
       const sourceLines = await lockDocumentAndReadLines(tx, source.id);
 
       const created = await tx.document.create({
@@ -340,8 +275,7 @@ documentsRouter.post(
           userId: req.userId!,
           title: `${source.title} (copy)`.slice(0, 200),
           customer: source.customer,
-          // A copy is a new document, issued now — not a claim to have been issued when the
-          // original was.
+
           issueDate: toUtcDate(today),
           currency: source.currency,
           status: 'DRAFT',
@@ -361,8 +295,6 @@ documentsRouter.post(
         include: { lines: { orderBy: { position: 'asc' } } },
       });
 
-      // Totals are recomputed from the copied inputs rather than copied, so a duplicate is
-      // always internally consistent with the engine as it stands today.
       const result = await recompute(tx, created.id, created.lines);
 
       return { ...withTotals(created, result.totals), lines: result.lines };
@@ -372,17 +304,6 @@ documentsRouter.post(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// POST /documents/:id/archive
-//
-// Note the guard stack: requireFinalized, NOT requireDraft. Archiving is the one mutation that
-// is valid on precisely a finalized document, so requireDraft — which rejects everything on a
-// finalized document — would reject every request here. See guards/requireFinalized.ts.
-//
-// Written as raw SQL rather than prisma.document.update because Prisma's @updatedAt would move
-// the timestamp on a record the schema and README both describe as frozen. Archiving changes no
-// line, no amount, and no metadata; archivedAt carries the only timestamp the action needs.
-// ---------------------------------------------------------------------------------------
 documentsRouter.post(
   '/:id/archive',
   loadDocument,
@@ -400,17 +321,6 @@ documentsRouter.post(
   }),
 );
 
-// ---------------------------------------------------------------------------------------
-// POST /documents/:id/unarchive
-//
-// Restoring must NOT touch status. An archived document comes back finalized, because
-// archive → restore returning a draft would be a route to un-finalize a closed record: edit an
-// immutable document by round-tripping it through the archive.
-//
-// This handler is the guarantee. A row-level CHECK cannot express it — a CHECK sees only the new
-// row, never the previous one, so it cannot forbid a status transition. The end-to-end suite
-// asserts it explicitly.
-// ---------------------------------------------------------------------------------------
 documentsRouter.post(
   '/:id/unarchive',
   loadDocument,
@@ -418,8 +328,6 @@ documentsRouter.post(
   handler(async (req, res) => {
     const document = req.document!;
 
-    // Only archivedAt is cleared. status and finalizedAt are not in this statement at all, which
-    // is the strongest form the guarantee can take here.
     await prisma.$executeRaw`
       UPDATE "documents" SET "archivedAt" = NULL WHERE "id" = ${document.id}::text
     `;

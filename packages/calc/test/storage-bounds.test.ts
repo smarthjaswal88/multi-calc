@@ -1,12 +1,3 @@
-/**
- * Storage bounds.
- *
- * Every monetary column in the schema is a PostgreSQL INTEGER, which tops out at 2,147,483,647.
- * If validation accepted a value above that, the write would fail inside the database driver
- * and reach the user as a 500 rather than a specific 400. These tests pin the validation
- * ceiling to the storage ceiling so the two cannot drift apart.
- */
-
 import { describe, expect, it } from 'vitest';
 import { computeDocument, exceedsStorageBounds } from '../src/document.js';
 import { MAX_AMOUNT_MINOR, MAX_QUANTITY, PG_INT4_MAX, parseMoney } from '../src/money.js';
@@ -38,13 +29,10 @@ describe('the validation ceiling matches the storage ceiling', () => {
   });
 
   it('leaves room for the worst-case intermediate inside safe-integer range', () => {
-    // The largest intermediate is an amount multiplied by the basis-point scale.
     expect(MAX_AMOUNT_MINOR * 10_000).toBeLessThan(Number.MAX_SAFE_INTEGER);
   });
 
   it('keeps a maximum-quantity line at the maximum price out of the storable range', () => {
-    // Both bounds are individually satisfiable, so their product must be checked separately —
-    // which is exactly what the line schema does.
     expect(MAX_QUANTITY * MAX_AMOUNT_MINOR).toBeGreaterThan(PG_INT4_MAX);
   });
 });
@@ -85,8 +73,6 @@ describe('line validation bounds', () => {
   });
 
   it('rejects a product that overflows even though both factors are individually valid', () => {
-    // 1,000,000 x 100,000 = 1e11, which no INTEGER column can hold. Before this check the
-    // request reached Postgres and failed as a driver error.
     const result = schema.safeParse(line({ quantity: 1_000_000, unitPriceMinor: 100_000 }));
     expect(result.success).toBe(false);
     expect(messageFor(result, 'unitPriceMinor')).toBe(VALIDATION_MESSAGES.lineSubtotalTooLarge);
@@ -120,8 +106,6 @@ describe('document-level storage bounds', () => {
   });
 
   it('catches a document whose lines are each valid but whose sum overflows', () => {
-    // Fifty lines at the per-line ceiling: every line passes its own schema, but the document
-    // subtotal is 1e11 and cannot be stored.
     const big: LineInput = {
       quantity: 1,
       unitPriceMinor: MAX_AMOUNT_MINOR,

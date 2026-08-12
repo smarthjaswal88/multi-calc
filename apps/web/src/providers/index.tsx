@@ -7,10 +7,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { ApiError } from '@/lib/api';
 
-/**
- * next-themes 0.4 declares its provider props without `children`, so the component is retyped
- * here rather than casting at the call site.
- */
 const ThemeProvider = NextThemeProvider as React.ComponentType<
   React.PropsWithChildren<{
     attribute?: string;
@@ -29,8 +25,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
             staleTime: 30_000,
             refetchOnWindowFocus: false,
             retry: (failureCount, error) => {
-              // Never retry a rejection the server meant: an expired session, a missing
-              // document, or a finalized-document conflict will not resolve by asking again.
               if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
                 return false;
               }

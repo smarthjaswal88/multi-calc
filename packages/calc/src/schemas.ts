@@ -1,11 +1,3 @@
-/**
- * Validation schemas, shared by the API and the web forms.
- *
- * Every message a user can see is authored here exactly once, so the text shown while typing
- * is identical to the text the server would return. Messages name the field and state the
- * fix; none of them says "invalid input".
- */
-
 import { z } from 'zod';
 import { CURRENCY_CODES, type CurrencyCode } from './currency.js';
 import { formatMoney, MAX_AMOUNT_MINOR, MAX_QUANTITY } from './money.js';
@@ -45,7 +37,6 @@ export const VALIDATION_MESSAGES = {
     'Use 72 characters or fewer. Accented and non-Latin characters count for more than one.',
 } as const;
 
-/** "Discount can't be more than this line's subtotal of $200.00." */
 export function discountExceedsSubtotalMessage(
   subtotalMinor: number,
   currency: CurrencyCode,
@@ -53,12 +44,10 @@ export function discountExceedsSubtotalMessage(
   return `Discount can't be more than this line's subtotal of ${formatMoney(subtotalMinor, currency)}.`;
 }
 
-/** "Line 3 has a quantity of 0. Every line needs a quantity of at least 1." */
 export function finalizeQuantityMessage(position: number, quantity: number): string {
   return `Line ${position} has a quantity of ${quantity}. Every line needs a quantity of at least 1.`;
 }
 
-/** "Line 2 has a negative unit price. Prices can't be negative." */
 export function finalizePriceMessage(position: number): string {
   return `Line ${position} has a negative unit price. Prices can't be negative.`;
 }
@@ -68,14 +57,6 @@ export const currencyCodeSchema = z.enum(
   { errorMap: () => ({ message: VALIDATION_MESSAGES.currencyUnsupported }) },
 );
 
-/**
- * A calendar date, as `YYYY-MM-DD`.
- *
- * The refine is a *round trip*, not a parse check. `Date.parse('2026-06-31')` succeeds and
- * silently rolls the value forward to 1 July, so a parse check would accept a date that does
- * not exist and then store a different one than the user typed — quietly moving a document out
- * of the reporting range it belongs to. Re-serialising and comparing catches every such case.
- */
 export const dateStringSchema = z
   .string({ required_error: VALIDATION_MESSAGES.issueDateRequired })
   .regex(/^\d{4}-\d{2}-\d{2}$/, VALIDATION_MESSAGES.dateFormat)
@@ -136,19 +117,8 @@ const baseLineShape = {
   taxPercentBp: percentBpSchema(VALIDATION_MESSAGES.taxPercentRange),
 };
 
-/**
- * Line schema, bound to a currency.
- *
- * The currency is needed only so the over-large-fixed-discount message can name the actual
- * subtotal — "more than this line's subtotal of $200.00" is actionable in a way that
- * "discount too large" is not.
- */
 export function lineInputSchema(currency: CurrencyCode) {
   return z.object(baseLineShape).superRefine((line, ctx) => {
-    // Quantity and unit price are individually bounded, but their product is what gets
-    // stored. Without this check a modest price and a large quantity combine into a subtotal
-    // no INTEGER column can hold, and the write fails in the driver as a 500 rather than here
-    // as a specific 400.
     if (line.quantity * line.unitPriceMinor > MAX_AMOUNT_MINOR) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -194,9 +164,6 @@ export function lineInputSchema(currency: CurrencyCode) {
       });
     }
 
-    // A fixed discount may not exceed the line's own subtotal. We reject rather than clamp:
-    // silently altering a figure the author typed is the worse failure in a document a
-    // customer will read.
     if (line.discountType === 'FIXED' && hasFixed) {
       const subtotal = line.quantity * line.unitPriceMinor;
       if ((line.discountFixedMinor as number) > subtotal) {
@@ -249,14 +216,7 @@ export const credentialsSchema = z.object({
     .trim()
     .toLowerCase()
     .email('Enter a valid email address.'),
-  /**
-   * Bounded by BYTES, not characters, because bcrypt truncates at 72 bytes and says nothing.
-   *
-   * A 200-character limit let two different long passwords hash identically — everything past the
-   * 72nd byte was silently discarded, so a user who changed only the tail of a long password would
-   * find the old one still worked. Multibyte characters make the two counts diverge: 'é' is two
-   * bytes and most emoji are four, so a 40-character password can exceed the limit.
-   */
+
   password: z
     .string({ required_error: 'Enter a password.' })
     .min(8, 'Use at least 8 characters.')
@@ -271,12 +231,6 @@ export interface FinalizeIssue {
   message: string;
 }
 
-/**
- * Structural checks that must hold before a document can be finalized.
- *
- * Returns every problem rather than the first, so the interface can list the offending lines
- * with links instead of making the user fix them one at a time.
- */
 export function validateFinalizePreconditions(
   lines: readonly { id?: string; position: number; quantity: number; unitPriceMinor: number }[],
 ): FinalizeIssue[] {

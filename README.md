@@ -4,14 +4,41 @@ Build pricing documents with line items, apply a discount and a tax rate to each
 back totals that are guaranteed correct. Documents start as drafts, then get finalized into
 permanently read-only records. A summary report rolls up totals across an issue-date range.
 
-**Live URL:** _pending deployment_
-**Demo account:** `demo@multicalc.app` / `demo1234` — seeded with the specification's reference
-document plus 11 siblings across six currencies.
+## Live
+
+**https://multi-calc-web-nuur.vercel.app**
+
+**Sign in with `demo@multicalc.app` / `demo1234`.** Open **Q3 Platform Retainer** to see the
+specification's reference document — three lines totalling **$421.50**. The account also holds
+eleven siblings across six currencies, including a JPY document (no decimals) and a KWD one (three),
+so the multi-currency rounding is visible without creating anything.
+
+> **The first request can take up to 50 seconds.** The API runs on Render's free tier, which spins
+> the instance down after a period of inactivity and cold-starts it on the next request. Subsequent
+> requests are fast — a database round trip through the API measures around 120ms. If the login page
+> appears to hang, it is waking up, not broken.
+
+Signing up works, but a new account starts empty by design: every query is scoped to its owner, so
+the demo account's documents are invisible to it. Use the demo credentials to see populated data.
+
+### Deployment topology
+
+| Component | Platform | Region |
+|---|---|---|
+| Web | Vercel | edge |
+| API | Render (free tier) | Singapore |
+| Database | Neon (managed PostgreSQL) | ap-southeast-1 |
+
+The API and the database sit in the same region deliberately. A transaction is three round trips —
+BEGIN, the work, COMMIT — so putting them on opposite sides of the world costs roughly 300ms per
+write. Measured from a laptop in India against Singapore: 307ms per transaction. Co-located, the
+same work is single-digit milliseconds.
 
 ---
 
 ## Contents
 
+- [Live](#live)
 - [Prerequisites and setup](#prerequisites-and-setup)
 - [Calculation and rounding policy](#calculation-and-rounding-policy)
 - [Worked example](#worked-example)
@@ -28,20 +55,22 @@ document plus 11 siblings across six currencies.
 ## Prerequisites and setup
 
 - Node.js 20 or newer
-- A PostgreSQL 14+ database (a [Neon](https://neon.tech) free-tier project works)
+- Docker, for the local PostgreSQL container (or any PostgreSQL 14+ you point `DATABASE_URL` at)
 
 ```bash
 git clone <repository> && cd multi-calc
-npm install                       # also builds packages/calc via its prepare script
+npm install
+
+docker compose up -d              # PostgreSQL 16 on localhost:5432
 
 cp apps/api/.env.example apps/api/.env
-#   set DATABASE_URL to your Postgres connection string
+#   DATABASE_URL is already the local container
 #   set JWT_SECRET to at least 32 random characters (the app refuses to boot otherwise)
 
 cp apps/web/.env.local.example apps/web/.env.local
 #   NEXT_PUBLIC_API_URL=http://localhost:4000
 
-npm run test                      # 216 unit tests on the calculation engine — no DB needed
+npm run test                      # 219 unit tests on the calculation engine — no DB needed
 npm run db:migrate                # create the schema
 npm run db:seed                   # demo user + reference document + 11 siblings
 
@@ -52,11 +81,16 @@ npm run dev:web                   # http://localhost:3000
 Sign in with the demo account and open **Q3 Platform Retainer** to see the reference document
 totalling `$421.50`.
 
+**The seed and verification scripts refuse to run against a non-local database.** They delete rows
+and create an account with a known password, so they check the host and stop unless it is loopback.
+Override with `I_KNOW_THIS_WRITES_TO_PRODUCTION=1` when you genuinely mean it — that is how the
+deployed database was seeded.
+
 ### Verification
 
 ```bash
 npm run verify        # everything below, in one gate
-npm run test          # 216 unit tests   — the calculation engine
+npm run test          # 219 unit tests   — the calculation engine
 npm run typecheck     # calc + api + web, including prisma/ and scripts/
 npm run lint          # eslint across the web app
 npm run db:verify     #  24 probes       — raw SQL proving the DB refuses invalid data
@@ -439,7 +473,7 @@ the actual subtotal so the correction is obvious.
 ## Testing
 
 ```
-216 unit tests         packages/calc — the highest-value surface
+219 unit tests         packages/calc — the highest-value surface
  24 constraint probes   raw SQL, bypassing every application guard
 110 end-to-end checks   the HTTP surface against a real database
    + typecheck across calc, api and web, and eslint, in the same gate

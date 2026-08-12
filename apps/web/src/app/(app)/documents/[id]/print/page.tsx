@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * The printable view.
- *
- * No application chrome, and legible in monochrome — so the amber/indigo semantics fall back to
- * explicit signs and column labels rather than relying on hue, which a black-and-white printer
- * discards. All four intermediate columns are visible here: on paper there is no hover to reveal
- * a derivation, so the arithmetic has to be on the page.
- */
-
 import * as React from 'react';
 import { useParams } from 'next/navigation';
 import { Printer } from 'lucide-react';

@@ -15,14 +15,11 @@ describe('computeDocument', () => {
   });
 
   it('sums the rounded line figures rather than recomputing from raw inputs', () => {
-    // Three identical lines whose tax rounds up individually. Summing the rounded values
-    // gives 3 × 34 = 102. Taxing the combined base would give round(1000 × 3 × 0.0333) = 100.
-    // The first is correct under our policy, and it is what the user sees per line.
     const line: LineInput = {
       quantity: 1,
       unitPriceMinor: 1000,
       discountType: 'NONE',
-      taxPercentBp: 337, // 3.37% of 1000 = 33.7 → 34
+      taxPercentBp: 337,
     };
     const { lines, totals } = computeDocument([line, line, line]);
 
@@ -44,7 +41,6 @@ describe('computeDocument', () => {
   });
 
   it('holds the invariant on a wide spread of generated documents', () => {
-    // Deterministic pseudo-random inputs — no Math.random, so a failure is reproducible.
     let seed = 42;
     const next = (max: number) => {
       seed = (seed * 1103515245 + 12345) % 2147483648;
@@ -68,7 +64,7 @@ describe('computeDocument', () => {
 
       expect(() => assertTotalsConsistent(totals)).not.toThrow();
       expect(totals.grandTotalMinor).toBe(lines.reduce((s, l) => s + l.lineTotalMinor, 0));
-      // No line may ever go negative.
+
       for (const l of lines) {
         expect(l.afterDiscountMinor).toBeGreaterThanOrEqual(0);
         expect(l.lineTotalMinor).toBeGreaterThanOrEqual(0);

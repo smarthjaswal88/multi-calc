@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * The document list — the application's home.
- *
- * Users mostly return to existing documents rather than creating new ones, so this is the screen
- * that opens. Status is the most important attribute in the table, which is why the badge treatment
- * has to read from across the room.
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -47,8 +39,6 @@ type StatusFilter = 'all' | 'draft' | 'finalized';
 
 const PAGE_SIZE = 25;
 
-
-
 export default function DocumentsPage() {
   const router = useRouter();
   const { data: user } = useMe();
@@ -57,17 +47,14 @@ export default function DocumentsPage() {
   const [query, setQuery] = React.useState('');
   const [page, setPage] = React.useState(1);
 
-  // Debounced so typing does not fire a request per keystroke.
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setQuery(search.trim());
-      // A narrowed result set would otherwise land on a page that no longer exists.
+
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
-
-
 
   const { data, isLoading } = useDocuments({
     status,
@@ -82,10 +69,7 @@ export default function DocumentsPage() {
   const [title, setTitle] = React.useState('');
   const [customer, setCustomer] = React.useState('');
   const [issueDate, setIssueDate] = React.useState(todayIso());
-  // Derived, not synced. An effect copying user.defaultCurrency into state schedules a second
-  // render to communicate something already in hand, and races the dialog opening before the user
-  // query resolves. Tracking only the explicit override means the default follows the account until
-  // the moment someone chooses otherwise.
+
   const [pickedCurrency, setPickedCurrency] = React.useState<CurrencyCode | null>(null);
   const currency = pickedCurrency ?? user?.defaultCurrency ?? DEFAULT_CURRENCY;
 
@@ -112,7 +96,7 @@ export default function DocumentsPage() {
       open={open}
       onOpenChange={(next: boolean) => {
         setOpen(next);
-        // Drop the override on close, so reopening reflects the account default again.
+
         if (!next) setPickedCurrency(null);
       }}
     >

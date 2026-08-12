@@ -80,14 +80,13 @@ describe('float drift the integer representation avoids', () => {
     const b = parseMoney('0.20', 'USD');
     expect(a + b).toBe(30);
     expect(formatMoney(a + b, 'USD')).toBe('$0.30');
-    // For contrast, the float path does not: 0.1 + 0.2 === 0.30000000000000004
+
     expect(0.1 + 0.2).not.toBe(0.3);
   });
 
   it('handles 1.005 without the classic float rounding failure', () => {
-    // (1.005).toFixed(2) yields "1.00" because 1.005 is not exactly representable.
     expect((1.005).toFixed(2)).toBe('1.00');
-    // Parsed as an integer count of cents, it is unambiguous.
+
     expect(parseMoney('1.005', 'KWD')).toBe(1005);
   });
 
@@ -117,7 +116,6 @@ describe('formatMoney', () => {
   });
 
   it('uses Indian 2-2-3 grouping for INR', () => {
-    // Five hundred ninety thousand rupees groups as 5,90,000 — not 590,000.
     expect(formatMoney(59000000, 'INR')).toContain('5,90,000');
   });
 

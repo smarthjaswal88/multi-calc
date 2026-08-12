@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * An empty screen is an invitation to act, not a shrug.
- *
- * One line of direction and one primary action. Used in five places — the document list with
- * nothing on it, a filtered list with no matches, a document with no lines, a report range with
- * no documents, and a failed load — so the copy is always passed in rather than generalised into
- * something vague enough to fit everywhere.
- */
-
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

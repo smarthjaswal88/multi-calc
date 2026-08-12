@@ -11,7 +11,7 @@ const badgeVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground',
         outline: 'border border-input text-foreground',
-        // Document state reads as an outline while editable, and fills once it is committed.
+
         draft:
           'border border-[color:var(--state-draft)] bg-transparent text-[color:var(--state-draft)]',
         finalized: 'bg-[color:var(--state-finalized)] text-background',

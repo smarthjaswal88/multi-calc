@@ -1,15 +1,3 @@
-/**
- * The immutability rule, enforced in one place.
- *
- * Applied as middleware to every mutating route rather than repeated as a conditional inside
- * each handler — a rule expressed in a dozen places is a rule that will eventually be omitted
- * from the thirteenth.
- *
- * A finalized document is a closed record. The 409 is what the interface turns into "This
- * document is finalized and can't be edited," with a Refresh action: the realistic cause is a
- * stale browser tab whose document was finalized somewhere else.
- */
-
 import type { RequestHandler } from 'express';
 import { ConflictError } from '../errors.js';
 

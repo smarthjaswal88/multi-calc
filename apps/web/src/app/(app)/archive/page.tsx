@@ -1,16 +1,5 @@
 'use client';
 
-/**
- * The Archive.
- *
- * Finalized documents that have been filed away. Read-only by nature — an archived document is
- * still finalized, so nothing here is editable; the only action is Restore.
- *
- * Deliberately not a "trash": there is no expiry, no purge, and no countdown. An archive is
- * permanent until restored, which is what the word means and what makes it safe to put a closed
- * financial record into.
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { Archive as ArchiveIcon, RotateCcw } from 'lucide-react';
@@ -33,7 +22,6 @@ import { useDocuments, useUnarchiveDocument } from '@/lib/hooks';
 import { formatDateLong, type CurrencyCode } from '@/lib/money';
 
 const PAGE_SIZE = 25;
-
 
 export default function ArchivePage() {
   const [page, setPage] = React.useState(1);

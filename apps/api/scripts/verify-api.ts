@@ -1,23 +1,9 @@
-/**
- * End-to-end verification of the HTTP surface.
- *
- * Boots the real app on an ephemeral port and drives it over HTTP, against the real database.
- * Covers the rules the assignment grades: calculation correctness, finalized immutability,
- * ownership isolation, specific validation errors, and report reconciliation.
- *
- * Creates two throwaway users and deletes them (cascading their documents) at the end, so it is
- * safe to run repeatedly against a database that also holds the seeded demo account.
- *
- * Run with:  npm run verify:api -w api
- */
-
 import 'dotenv/config';
 import { guardDestructive } from '../src/config/guardDestructive.js';
 import type { Server } from 'node:http';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/db/prisma.js';
 
-// Writes to the database — refuse to touch production. See src/config/guardDestructive.ts.
 guardDestructive('scripts/verify-api.ts');
 
 let passed = 0;
@@ -79,7 +65,6 @@ function makeClient(baseUrl: string): Client {
   return client;
 }
 
-/** A reference-document line, in the wire format. */
 const REFERENCE_LINES = [
   {
     description: 'Widget A',
@@ -123,7 +108,6 @@ async function main(): Promise<void> {
   const b = makeClient(baseUrl);
 
   try {
-    // -------------------------------------------------------------------------------
     section('Health and authentication');
 
     const health = await a.request('GET', '/health');
@@ -196,7 +180,6 @@ async function main(): Promise<void> {
 
     await b.request('POST', '/api/auth/signup', { email: emailB, password });
 
-    // -------------------------------------------------------------------------------
     section('Document creation and the reference calculation');
 
     const badDate = await a.request('POST', '/api/documents', {
@@ -268,7 +251,6 @@ async function main(): Promise<void> {
     check('positions are 1..n in order', JSON.stringify(doc.lines.map((l: any) => l.position)) === '[1,2,3]');
     check('the currency locks once a line exists', doc.currencyEditable === false);
 
-    // -------------------------------------------------------------------------------
     section('Validation errors are specific');
 
     const cases: Array<[string, unknown, string]> = [
@@ -351,7 +333,6 @@ async function main(): Promise<void> {
         stillThree.body.document.grandTotalMinor === 42150,
     );
 
-    // -------------------------------------------------------------------------------
     section('The currency lock');
 
     const lockedCurrency = await a.request('PATCH', `/api/documents/${docId}`, { currency: 'JPY' });
@@ -391,7 +372,6 @@ async function main(): Promise<void> {
       JSON.stringify(yenDecimals.body?.document?.lines?.[0]),
     );
 
-    // -------------------------------------------------------------------------------
     section('Reorder, edit, and delete');
 
     const before = await a.request('GET', `/api/documents/${docId}`);
@@ -469,7 +449,6 @@ async function main(): Promise<void> {
       JSON.stringify(deleted.body.document.lines.map((l: any) => l.position)),
     );
 
-    // -------------------------------------------------------------------------------
     section('Finalize preconditions and immutability');
 
     const emptyFinalize = await a.request('POST', '/api/documents', {
@@ -526,7 +505,6 @@ async function main(): Promise<void> {
         afterAttempts.body.document.lines.length === 2,
     );
 
-    // -------------------------------------------------------------------------------
     section('Duplicate');
 
     const copy = await a.request('POST', `/api/documents/${docId}/duplicate`);
@@ -550,7 +528,6 @@ async function main(): Promise<void> {
     });
     check('the copy is editable', copyEditable.status === 200);
 
-    // -------------------------------------------------------------------------------
     section('Ownership isolation');
 
     const otherUserGet = await b.request('GET', `/api/documents/${docId}`);
@@ -572,7 +549,6 @@ async function main(): Promise<void> {
     const bList = await b.request('GET', '/api/documents');
     check("another user's list is empty", bList.body?.total === 0, JSON.stringify(bList.body?.total));
 
-    // -------------------------------------------------------------------------------
     section('List filtering and the summary report');
 
     const listAll = await a.request('GET', '/api/documents?pageSize=100');
@@ -613,7 +589,6 @@ async function main(): Promise<void> {
     const jpyGroup = report.body.groups.find((g: any) => g.currency === 'JPY');
     check('the report groups by currency', !!usdGroup && !!jpyGroup, JSON.stringify(report.body.groups));
 
-    // Reconciliation: each group's sums must equal the documents it counted.
     for (const group of report.body.groups) {
       const contributing = report.body.documents.filter((d: any) => d.currency === group.currency);
       const expected = contributing.reduce(
@@ -660,10 +635,8 @@ async function main(): Promise<void> {
       JSON.stringify(narrow.body),
     );
 
-    // -------------------------------------------------------------------------------
     section('Archive');
 
-    // A draft is deleted, never archived — the destructive action differs by status on purpose.
     const archiveDraft = await a.request('POST', `/api/documents/${emptyFinalizeId}/archive`);
     check(
       'archiving a draft is refused with 409',
@@ -672,7 +645,6 @@ async function main(): Promise<void> {
       `got ${archiveDraft.status} "${archiveDraft.body?.error?.message}"`,
     );
 
-    // Deleting a finalized document is still refused — archive is the path, not a replacement rule.
     const deleteFinalized = await a.request('DELETE', `/api/documents/${docId}`);
     check(
       'deleting a finalized document is still refused with 409',
@@ -725,8 +697,6 @@ async function main(): Promise<void> {
       archiveList.body.items.every((d: any) => d.archived === true),
     );
 
-    // Regression the review flagged: the filter reaching the aggregate but not the document list
-    // would make the KPI cards and the breakdown table disagree.
     const reportAfterArchive = await a.request(
       'GET',
       '/api/reports/summary?from=2026-01-01&to=2026-12-31&includeDocuments=true',
@@ -757,14 +727,12 @@ async function main(): Promise<void> {
       );
     }
 
-    // Archived but still addressable by id, so a bookmarked link explains itself.
     const archivedById = await a.request('GET', `/api/documents/${docId}`);
     check(
       'an archived document is still readable by id and says so',
       archivedById.status === 200 && archivedById.body.document.archived === true,
     );
 
-    // Decided deliberately: reviving an old quote is the natural next-year move.
     const dupArchived = await a.request('POST', `/api/documents/${docId}/duplicate`);
     check(
       'an archived document can be duplicated into a live draft',
@@ -781,7 +749,6 @@ async function main(): Promise<void> {
       `got ${otherArchive.status}`,
     );
 
-    // THE constraint that must not bend.
     const restored = await a.request('POST', `/api/documents/${docId}/unarchive`);
     check('restoring succeeds', restored.status === 200);
     check(
@@ -816,13 +783,11 @@ async function main(): Promise<void> {
       backInList.body.items.some((d: any) => d.id === docId),
     );
 
-    // -------------------------------------------------------------------------------
     section('Logout');
 
     const logout = await a.request('POST', '/api/auth/logout');
     check('logout returns 204', logout.status === 204);
   } finally {
-    // Cascades to documents and lines.
     await prisma.user.deleteMany({ where: { email: { in: [emailA, emailB] } } });
     server.close();
     await prisma.$disconnect();

@@ -1,11 +1,3 @@
-/**
- * The curated currency list.
- *
- * `exponent` is the number of decimal places the currency uses, and therefore how many
- * minor units make up one major unit. It is the single source of truth for that question —
- * nothing else in the codebase may assume two decimal places.
- */
-
 export type CurrencyCode =
   | 'USD'
   | 'EUR'
@@ -24,7 +16,7 @@ export interface Currency {
   readonly code: CurrencyCode;
   readonly name: string;
   readonly symbol: string;
-  /** Locale used for grouping conventions — INR groups 2-2-3, not 3-3. */
+
   readonly locale: string;
   readonly exponent: 0 | 2 | 3;
 }
@@ -60,7 +52,6 @@ export function getCurrency(code: CurrencyCode): Currency {
   return currency;
 }
 
-/** How many minor units make one major unit: 1 for JPY, 100 for USD, 1000 for KWD. */
 export function minorUnitsPerMajor(code: CurrencyCode): number {
   return 10 ** getCurrency(code).exponent;
 }

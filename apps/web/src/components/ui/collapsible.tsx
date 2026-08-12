@@ -14,7 +14,6 @@ const CollapsibleContent = React.forwardRef<
   <CollapsiblePrimitive.Content
     ref={ref}
     className={cn(
-      // The height keyframes read --radix-collapsible-content-height, which Radix sets on this element.
       'overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up',
       className,
     )}

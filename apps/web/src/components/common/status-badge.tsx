@@ -1,14 +1,5 @@
 'use client';
 
-/**
- * Draft or finalized.
- *
- * The single most important attribute in the document list, so the two must be distinguishable
- * at a glance: a draft is an outlined ledger-green chip, a finalized document is a solid
- * graphite stamp. Finalized reads as *settled*, never as disabled or broken — the whole point of
- * the state is that the document is complete.
- */
-
 import { Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

@@ -1,27 +1,5 @@
 'use client';
 
-/**
- * The derivation tape — the element this interface is remembered by.
- *
- * An adding-machine tape showing a line's arithmetic step by step, right-aligned on the decimal:
- *
- *     2 × 100.00              200.00
- *   − 10%                    − 20.00
- *                          ─────────
- *     after discount          180.00
- *   + 5% tax                 +  9.00
- *                          ═════════
- *     line total              189.00
- *
- * It earns its place twice over. A user who disputes a figure can see where it came from without
- * leaving the page, and it makes the rounding policy legible rather than a claim in a README
- * nobody reads. Discount rows carry the amber hue, tax rows the indigo, and the resolved total
- * the ledger green — the same assignment used everywhere else in the app.
- *
- * Structure is information here: a single rule sits above a subtotal, a double rule above a
- * final. Those are the Swiss-modernist rules doing real work, not decoration.
- */
-
 import { cn } from '@/lib/utils';
 import { formatMoney, formatPercentBp, type CurrencyCode } from '@/lib/money';
 import type { LineDto } from '@/lib/api';
@@ -60,8 +38,7 @@ function TapeRow({ label, value, tone = 'ink', rule = 'none', density, emphasis 
         'flex items-baseline justify-between gap-6',
         size.row,
         rule === 'single' && 'border-t border-[color:var(--tape-rule)] mt-1 pt-1',
-        // A double rule is one border plus a box-shadow line beneath it — the printed
-        // convention for a final total.
+
         rule === 'double' &&
           'mt-1 pt-1.5 border-t-[3px] border-double border-[color:var(--tape-rule)]',
       )}
@@ -83,10 +60,6 @@ function TapeRow({ label, value, tone = 'ink', rule = 'none', density, emphasis 
   );
 }
 
-// ---------------------------------------------------------------------------------------
-// Per-line tape
-// ---------------------------------------------------------------------------------------
-
 interface LineTapeProps {
   line: LineDto;
   currency: CurrencyCode;
@@ -98,9 +71,7 @@ export function LineDerivationTape({ line, currency, density = 'expanded', class
   const money = (minor: number) => formatMoney(minor, currency, { withSymbol: false });
 
   const hasDiscount = line.discountType !== 'NONE' && line.discountAmountMinor !== 0;
-  // `!== null`, not `> 0`. A 0% rate is a stated choice and the table renders it as "0%", so a tape
-  // that silently omitted the tax row contradicted the very figure it exists to explain — in the
-  // more important of the two places.
+
   const hasTax = line.taxPercentBp !== null;
 
   const discountLabel =
@@ -155,17 +126,13 @@ export function LineDerivationTape({ line, currency, density = 'expanded', class
   );
 }
 
-// ---------------------------------------------------------------------------------------
-// Document tape — the same treatment at the largest size, for the sticky rail
-// ---------------------------------------------------------------------------------------
-
 interface DocumentTapeProps {
   subtotalMinor: number;
   totalDiscountMinor: number;
   totalTaxMinor: number;
   grandTotalMinor: number;
   currency: CurrencyCode;
-  /** True while the server is recomputing. Figures mute and settle rather than spin. */
+
   pending?: boolean;
   className?: string;
 }

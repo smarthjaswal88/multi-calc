@@ -23,8 +23,6 @@ export const FieldLabel = React.forwardRef<
 ));
 FieldLabel.displayName = 'FieldLabel';
 
-/* React.Children.toArray already drops null/undefined/booleans; whitespace-only strings still
-   have to be caught by hand, or a `{errors.name?.message}` of '' would reserve a blank line. */
 function isEmpty(children: React.ReactNode): boolean {
   return React.Children.toArray(children).every(
     (child) => typeof child === 'string' && child.trim() === '',

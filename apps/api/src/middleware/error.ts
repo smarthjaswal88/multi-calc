@@ -1,7 +1,3 @@
-/**
- * The single error response shape, and the only place that decides a status code.
- */
-
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { MoneyParseError } from '@multi-calc/calc';
@@ -16,12 +12,6 @@ interface ErrorBody {
   };
 }
 
-/**
- * Recognise a Prisma known-request error without importing the Prisma namespace here.
- *
- * A structural check rather than `instanceof`: the generated client lives outside this module's
- * import graph, and matching on the shape avoids coupling the error middleware to it.
- */
 function isPrismaKnownError(error: unknown): error is { code: string; meta?: unknown } {
   return (
     typeof error === 'object' &&
@@ -32,7 +22,6 @@ function isPrismaKnownError(error: unknown): error is { code: string; meta?: unk
   );
 }
 
-/** Flatten a Zod error into the envelope's field list, preserving nesting as a dotted path. */
 export function fieldsFromZod(error: ZodError): FieldError[] {
   return error.issues.map((issue) => ({
     path: issue.path.join('.'),
@@ -40,13 +29,11 @@ export function fieldsFromZod(error: ZodError): FieldError[] {
   }));
 }
 
-/** Anything unrecognised past the last route. */
 export const notFoundHandler: RequestHandler = (req, _res, next) => {
   next(new NotFoundError(`No route for ${req.method} ${req.path}.`));
 };
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  // A schema rejection that reached here rather than being caught by validate().
   if (error instanceof ZodError) {
     const fields = fieldsFromZod(error);
     const body: ErrorBody = {
@@ -60,7 +47,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  // Thrown by the calc package when a typed amount cannot be read.
   if (error instanceof MoneyParseError) {
     res.status(400).json({
       error: { code: 'VALIDATION_ERROR', message: error.message },
@@ -68,13 +54,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  // Prisma's own errors, mapped rather than falling through to a 500.
-  //
-  // The domain-constraints migration's header claims these rules are enforced "through any path
-  // into the database" — but a violation raised by Postgres arrived here unrecognised and became
-  // an opaque 500. A unique-position collision on concurrent inserts is now serialised by the
-  // FOR UPDATE in services/totals.ts, so P2002 should be unreachable through the API; it is mapped
-  // anyway, because "should be unreachable" is not "is".
   if (isPrismaKnownError(error)) {
     if (error.code === 'P2002') {
       res.status(409).json({
@@ -105,9 +84,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  // Anything else is a fault on our side. Log it in full; return nothing that describes the
-  // internals to the caller.
-  // eslint-disable-next-line no-console
   console.error('Unhandled error:', error);
 
   res.status(500).json({

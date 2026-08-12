@@ -1,20 +1,5 @@
 'use client';
 
-/**
- * The discount control — the most delicate part of the editor.
- *
- * A line may carry a percent discount OR a fixed amount, never both. The specification lists
- * that as a rule to confirm, the Zod schema rejects the illegal combination, and the database
- * refuses to store it — but the interface's job is to make the state *unreachable* rather than
- * merely rejected.
- *
- * So the control is a segmented three-way choice — none / % / amount — and selecting one clears
- * the other's value. There is no arrangement of clicks that produces a line with both.
- *
- * The input's affix changes with the selection: a percent sign trailing, or the document's
- * currency symbol leading.
- */
-
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { MoneyInput } from '@/components/money/money-input';
 import { PercentInput } from '@/components/money/percent-input';
@@ -50,8 +35,6 @@ export function DiscountControl({
   const { symbol } = getCurrency(currency);
 
   function selectType(next: DiscountType): void {
-    // Switching clears the other representation. Carrying a stale value forward is exactly the
-    // shape the database constraint rejects.
     onParseError?.(null);
     if (next === 'NONE') {
       onChange({ discountType: 'NONE', discountPercentBp: null, discountFixedMinor: null });
@@ -80,8 +63,6 @@ export function DiscountControl({
         disabled={disabled}
         aria-label="Discount kind"
         onValueChange={(next: string) => {
-          // Radix emits '' when the active item is clicked again; keep the current selection
-          // rather than dropping to an unset state the model has no representation for.
           if (next) selectType(next as DiscountType);
         }}
       >

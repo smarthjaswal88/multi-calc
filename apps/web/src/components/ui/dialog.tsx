@@ -35,12 +35,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-border bg-card p-5 shadow-lg outline-none',
-        // Scale and opacity only, deliberately without the slide-in-from-*-1/2 pair that this
-        // pattern carries in Tailwind v3. There, -translate-x-1/2 compiled into `transform`, so
-        // the keyframe's own transform replaced the centring offset and had to restore it. In v4
-        // the utility emits the standalone `translate` property, which *composes* with
-        // `transform` — restoring the offset there would apply it twice and fling the panel in
-        // from the top-left corner. Centring now survives the animation on its own.
+
         'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
         'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
         className,
@@ -59,7 +54,6 @@ DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    // pr-6 keeps the title clear of the close button.
     <div ref={ref} className={cn('flex flex-col gap-1 pr-6 text-left', className)} {...props} />
   ),
 );

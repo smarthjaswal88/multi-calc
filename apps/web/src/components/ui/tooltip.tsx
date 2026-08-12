@@ -4,8 +4,6 @@ import * as React from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '@/lib/utils';
 
-// One provider near the app root governs delay and skip-delay for every tooltip in a toolbar,
-// so hovering along a row of controls does not re-pay the delay on each one.
 const TooltipProvider = ({
   delayDuration = 200,
   ...props
@@ -14,7 +12,6 @@ const TooltipProvider = ({
 );
 TooltipProvider.displayName = 'TooltipProvider';
 
-// Requires an ancestor TooltipProvider.
 const Tooltip = TooltipPrimitive.Root;
 const TooltipTrigger = TooltipPrimitive.Trigger;
 

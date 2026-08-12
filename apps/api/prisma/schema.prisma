@@ -1,20 +1,3 @@
-// Multi-Rate Pricing Calculator — data model
-//
-// MONEY REPRESENTATION
-// Every monetary column is an Int holding a count of the document currency's *minor units* —
-// cents for USD, whole yen for JPY, fils for KWD. No column holds a float or a decimal, and
-// no amount is meaningful without the currency of its parent document.
-//
-// PERCENTAGES
-// Stored as basis points: 825 means 8.25%. Keeps the whole calculation in integer space, so a
-// rate with two decimal places never reintroduces floating-point drift.
-//
-// COMPUTED COLUMNS
-// The five per-line figures and four document totals are computed by @multi-calc/calc and
-// persisted on every write. This freezes finalized documents against future changes to the
-// rounding policy, and turns the summary report into an aggregate query. Exactly one code
-// path — services/totals.ts — may write them.
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -41,7 +24,6 @@ model User {
   email        String @unique
   passwordHash String
 
-  /// Seeds the currency field on the user's next new document.
   defaultCurrency String @default("USD")
 
   documents Document[]
@@ -59,35 +41,19 @@ model Document {
   title    String
   customer String
 
-  /// Date only. The summary report filters on this column.
   issueDate DateTime @db.Date
 
   status DocumentStatus @default(DRAFT)
 
-  /// ISO 4217 code. Immutable once the document has line items, because reinterpreting
-  /// stored minor units under a different exponent would silently re-denominate them.
   currency String @default("USD")
 
-  // ---- computed, persisted; written only by services/totals.ts ----
   subtotalMinor      Int @default(0)
   totalDiscountMinor Int @default(0)
   totalTaxMinor      Int @default(0)
   grandTotalMinor    Int @default(0)
 
-  /// Set when the document is finalized; null while it is a draft.
   finalizedAt DateTime?
 
-  /// Set when the document is archived; null otherwise.
-  ///
-  /// Only ever non-null on a FINALIZED document — a draft you do not want is deleted, not
-  /// archived. Enforced by a CHECK constraint.
-  ///
-  /// Deliberately a nullable timestamp rather than a third value on DocumentStatus: an archived
-  /// document is *still finalized*. Collapsing the two would break the CHECK tying finalizedAt to
-  /// status, and every `status === 'FINALIZED'` test in the codebase.
-  ///
-  /// Archiving does not move `updatedAt`. The schema and README both describe a finalized
-  /// document as frozen, and this column carries the only timestamp the action needs.
   archivedAt DateTime?
 
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -96,14 +62,9 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Serves the document list (scoped by owner, sorted by date) and the summary report
-  // (scoped by owner, filtered by date range).
   @@index([userId, issueDate])
-  // Serves the report's per-currency grouping without a separate scan.
   @@index([userId, currency])
   @@index([userId, status])
-  // Every document list and both report queries filter on archivedAt, so it leads the index
-  // alongside the owner.
   @@index([userId, archivedAt])
   @@map("documents")
 }
@@ -112,7 +73,6 @@ model LineItem {
   id         String @id @default(cuid())
   documentId String
 
-  /// 1-based display order. Unique within a document so reordering cannot collide.
   position Int
 
   description String
@@ -122,16 +82,12 @@ model LineItem {
 
   discountType DiscountType @default(NONE)
 
-  /// Basis points. Non-null only when discountType is PERCENT.
   discountPercentBp Int?
 
-  /// Minor units. Non-null only when discountType is FIXED.
   discountFixedMinor Int?
 
-  /// Basis points. Null means the line is untaxed.
   taxPercentBp Int?
 
-  // ---- computed, persisted; written only by services/totals.ts ----
   lineSubtotalMinor   Int @default(0)
   discountAmountMinor Int @default(0)
   afterDiscountMinor  Int @default(0)

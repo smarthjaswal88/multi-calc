@@ -1,17 +1,5 @@
 "use client";
 
-/**
- * The line items table — where a user spends almost all of their time.
- *
- * The four intermediate figures (line subtotal, discount amount, after discount, tax amount)
- * live in the derivation tape rather than as always-visible columns. That is what keeps the table
- * readable at ten lines while remaining fully auditable: hover a row for a compact tape, expand
- * it for the full one, or switch on "all columns" to see the whole grid inline.
- *
- * Every edit commits on blur or Enter and returns the whole document from the server. Nothing
- * here computes a total.
- */
-
 import * as React from "react";
 import {
   ChevronDown,
@@ -59,7 +47,7 @@ interface LineItemsTableProps {
   document: DocumentDto;
   editable: boolean;
   pending?: boolean;
-  /** Field errors keyed by line id, mapped from the server's field paths. */
+
   errors?: Record<string, string>;
   onUpdate: (lineId: string, input: LineInputDto) => void;
   onDelete: (lineId: string) => void;
@@ -97,11 +85,6 @@ export function LineItemsTable({
     {},
   );
 
-  // Derived from the same two conditions that render the columns, rather than hardcoded. The
-  // previous literals (16 and 12) overshot the real counts, so a spanning row stretched past the
-  // table and pushed the layout wider than its own header.
-  //   fixed: #, description, qty, unit price, discount, tax, item total, actions = 8
-  //   + reorder when editable, + four intermediate columns when expanded
   const columnCount = 8 + (editable ? 1 : 0) + (allColumns ? 4 : 0);
 
   function toggle(lineId: string): void {
@@ -168,22 +151,14 @@ export function LineItemsTable({
       </div>
 
       <div className="border border-border">
-        {/*
-         * Every column reads left-aligned, headers and values alike, overriding the `numeric`
-         * prop's right alignment for this table only. The prop still does its other job — mono
-         * face and tabular figures — and the report table keeps its right-aligned money columns.
-         *
-         * Trade-off, stated plainly: left-aligned figures of differing length no longer line up
-         * on the decimal, so a column of amounts is harder to scan and compare by eye. That is
-         * the reason the rest of the app right-aligns money.
-         */}
+
         <Table className="[&_input]:text-left [&_td]:text-left [&_th]:text-left">
           <TableHeader>
             <TableRow>
               {editable && <TableHead className="w-8" />}
               <TableHead className="w-8 text-right">#</TableHead>
               <TableHead className="min-w-48">Description</TableHead>
-              {/* Wide enough for MAX_QUANTITY (1,000,000) in tabular figures, not just 1–99. */}
+
               <TableHead numeric className="w-28">
                 Qty
               </TableHead>
@@ -221,9 +196,7 @@ export function LineItemsTable({
             {lines.map((line, index) => {
               const error = errors[line.id] ?? localErrors[line.id];
               const isExpanded = expanded.has(line.id);
-              // A row that exists only in the local cache has no server id yet, so editing or
-              // deleting it would address a row that does not exist. It stays read-only for the
-              // few hundred milliseconds until the real row arrives.
+
               const provisional = isOptimistic(line.id);
               const rowEditable = editable && !provisional;
 
@@ -235,9 +208,7 @@ export function LineItemsTable({
                       provisional && "opacity-60",
                     )}
                   >
-                    {/* Rendered on `editable`, matching the HEADER — not on `rowEditable`.
-                        A pending row is not reorderable, but the CELL must still exist or the row
-                        loses a column and every following cell shifts one to the left. */}
+
                     {editable && (
                       <TableCell className="px-1">
                         <div className={cn('flex flex-col', provisional && 'invisible')}>
@@ -275,12 +246,7 @@ export function LineItemsTable({
                           className="h-9"
                           onBlur={(event) => {
                             const description = event.target.value.trim();
-                            // An emptied description visibly RESTORES the saved value rather than
-                            // silently sending nothing and leaving the field blank — the
-                            // screen-disagrees-with-saved failure QuantityInput's docstring says a
-                            // pricing tool cannot allow. Restoring, not submitting, because the
-                            // field is required: the only valid outcomes are the old value or a new
-                            // non-empty one.
+
                             if (!description) {
                               event.target.value = line.description;
                               return;
@@ -311,10 +277,7 @@ export function LineItemsTable({
                           onParseError={(message) =>
                             setLocalError(line.id, message)
                           }
-                          // min-w matters more than the header's w-28: the table is auto-layout
-                          // inside a fixed-width grid column, and a w-full input has no
-                          // min-content of its own, so the browser will happily crush this cell
-                          // to nothing and clip the digits. The floor makes it scroll instead.
+
                           className="min-w-20"
                           onCommit={(quantity) =>
                             onUpdate(line.id, { ...toInput(line), quantity })
@@ -385,7 +348,7 @@ export function LineItemsTable({
                         <PercentInput
                           valueBp={line.taxPercentBp}
                           aria-label="Tax percent"
-                          // Room for "12.75" beside the trailing % affix, not just "5".
+
                           className="min-w-20"
                           onParseError={(message) =>
                             setLocalError(line.id, message)

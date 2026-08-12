@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * The summary report.
- *
- * Grouped by currency, never summed across them — adding an INR grand total to a USD one gives a
- * meaningless figure, and there is no FX conversion anywhere in this product. A single-currency
- * range must not look like "a group of one", so the grouping chrome only appears when there is
- * more than one currency to separate.
- *
- * The breakdown table exists so the KPI figures are checkable: its footer row must equal the
- * cards above it, and a reader can add the column up by hand if they want to.
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { CalendarRange } from 'lucide-react';
@@ -43,7 +31,6 @@ import {
 } from '@/lib/money';
 import type { ReportGroupDto } from '@/lib/api';
 
-/** Presets do most of the work; the custom inputs stay visible rather than hiding behind a mode. */
 function presets(): { label: string; from: string; to: string }[] {
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -108,8 +95,6 @@ function CurrencySection({
   const currency = group.currency as CurrencyCode;
   const rows = (documents ?? []).filter((document) => document.currency === currency);
 
-  // A code the engine does not know would throw on CURRENCIES[currency].name and take the whole
-  // page down. The server is the source here, so fall back to showing the raw code.
   const currencyName = isCurrencyCode(currency)
     ? CURRENCIES[currency].name
     : String(group.currency);
@@ -210,7 +195,6 @@ function CurrencySection({
             ))}
           </TableBody>
 
-          {/* This row must equal the cards above. It is the reconciliation, made visible. */}
           <TableFooter>
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={3} className="eyebrow">
@@ -254,9 +238,6 @@ function CurrencySection({
 }
 
 export default function ReportPage() {
-  // Computed every render rather than memoised. Four Date objects cost nothing, and a memo with
-  // an empty dependency list meant a tab left open overnight kept offering yesterday's ranges —
-  // "This month" would still point at the previous month after midnight on the 1st.
   const options = presets();
   const [from, setFrom] = React.useState(() => presets()[0]!.from);
   const [to, setTo] = React.useState(() => presets()[0]!.to);
@@ -328,7 +309,7 @@ export default function ReportPage() {
         <div className="flex items-center gap-2 border-t border-border pt-3">
           <Switch id="drafts" checked={includeDrafts} onCheckedChange={setIncludeDrafts} />
           <Label htmlFor="drafts" className="text-[0.8125rem] font-normal text-muted-foreground">
-            {/* The active mode stated in words, so a reader never has to infer it. */}
+
             {includeDrafts
               ? 'Counting drafts and finalized documents'
               : 'Counting finalized documents only'}

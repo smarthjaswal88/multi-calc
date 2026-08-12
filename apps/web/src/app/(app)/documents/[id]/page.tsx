@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * The document screen.
- *
- * One route, two presentations. A draft is fully editable; a finalized document is a read-only
- * record — not the editor with everything disabled, which reads as broken, but a genuinely
- * different treatment where inputs resolve into static typeset values.
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -74,18 +66,6 @@ export default function DocumentPage() {
     reorderLines.isPending ||
     finalize.isPending;
 
-  /**
-   * Attribute each rejection to the row that actually caused it.
-   *
-   * Taken from the mutation's own `variables` rather than a separate piece of sticky state. The
-   * previous version kept one `editingLineId` and read whichever of three mutations happened to
-   * hold an error, so a stale failed edit would surface under whichever row you touched next — the
-   * message pointed at an innocent line.
-   *
-   * `createLine` is deliberately absent: a rejected add has no row to attach to, so its message
-   * toasts instead (see `inlineValidation` in lib/hooks.ts). That is the gap which previously made
-   * the 200-line cap and the document-total ceiling fail in total silence.
-   */
   const lineErrors: Record<string, string> = {};
   for (const mutation of [updateLine, deleteLine]) {
     const { error, variables } = mutation;
@@ -94,12 +74,6 @@ export default function DocumentPage() {
     if (lineId) lineErrors[lineId] = error.fields[0]?.message ?? error.message;
   }
 
-  /**
-   * Metadata rejections, keyed by field.
-   *
-   * `patchDocument.error` was never read at all, so a title over 200 characters failed silently.
-   * A message the server does not attribute to a field is toasted by the mutation instead.
-   */
   const metaErrors: Record<string, string> =
     patchDocument.error instanceof ApiError && patchDocument.error.code === 'VALIDATION_ERROR'
       ? Object.fromEntries(patchDocument.error.fields.map((f) => [f.path, f.message]))
@@ -140,19 +114,6 @@ export default function DocumentPage() {
   const archived = document.archived;
   const currency = document.currency as CurrencyCode;
 
-
-  /**
-   * Commit a metadata field on blur.
-   *
-   * An emptied required field visibly RESTORES the saved value rather than silently doing nothing.
-   * Previously the guard was `if (value && value !== current)`, so clearing a title sent no request
-   * and left the input showing empty — the screen disagreed with what was saved, which is exactly
-   * the failure the QuantityInput docstring says a pricing tool cannot allow.
-   *
-   * Restoring is chosen over submitting-and-showing-an-error because the empty state is not a
-   * change the user can meaningfully save: the field is required, so the only valid outcomes are
-   * the old value or a new non-empty one.
-   */
   function commitMeta(
     field: 'title' | 'customer' | 'issueDate',
     raw: string,
@@ -189,15 +150,13 @@ export default function DocumentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back to the list is a real destination, so it gets a real button rather than a line of
-          quiet grey text. The secondary variant carries the border and card fill. */}
+
       <div className="no-print flex items-center gap-2">
         <Button
           asChild
           variant="secondary"
           size="sm"
-          // Ledger green on hover — the same --primary the default Button variant fills with,
-          // rather than the secondary variant's neutral grey wash.
+
           className="hover:border-primary hover:bg-primary hover:text-primary-foreground"
         >
           <Link href="/documents">
@@ -207,7 +166,6 @@ export default function DocumentPage() {
         </Button>
       </div>
 
-      {/* ---- header ---- */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
@@ -264,8 +222,6 @@ export default function DocumentPage() {
             )}
           </div>
 
-          {/* Field-level metadata messages. patchDocument.error used to go unread entirely, so a
-              title over 200 characters failed with no visible result at all. */}
           {Object.entries(metaErrors).length > 0 && (
             <ul className="space-y-0.5">
               {Object.entries(metaErrors).map(([field, message]) => (
@@ -322,8 +278,7 @@ export default function DocumentPage() {
                     onClick={() =>
                       archive.mutate(
                         { documentId: id },
-                        // Archiving is how you get a finished document out of the way, so leaving
-                        // the user staring at it would undo the point of the action.
+
                         { onSuccess: () => router.push('/documents') },
                       )
                     }
@@ -350,8 +305,7 @@ export default function DocumentPage() {
           {editable && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                {/* Quiet until hovered, then unmistakably destructive — the ghost variant's
-                    neutral hover said nothing about what this button does. */}
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -389,7 +343,6 @@ export default function DocumentPage() {
         </div>
       </div>
 
-      {/* ---- the locked banner: what is fixed, and what is still possible ---- */}
       {archived && (
         <Alert>
           <Archive />
@@ -430,7 +383,6 @@ export default function DocumentPage() {
         </Alert>
       )}
 
-      {/* ---- table + rail ---- */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <LineItemsTable
           document={document}

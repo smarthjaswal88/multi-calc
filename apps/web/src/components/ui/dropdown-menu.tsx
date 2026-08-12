@@ -19,7 +19,7 @@ const DropdownMenuContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-50 min-w-40 overflow-hidden rounded-md border border-border bg-popover p-1 text-foreground shadow-md',
-        // Radix focuses the content on open; the global focus ring belongs on the items, not the panel.
+
         'outline-none',
         'origin-(--radix-dropdown-menu-content-transform-origin)',
         'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
@@ -67,7 +67,6 @@ const DropdownMenuLabel = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
 >(({ className, ...props }, ref) => (
-  // `eyebrow` is the project's 11px uppercase micro-label, defined in globals.css.
   <DropdownMenuPrimitive.Label ref={ref} className={cn('eyebrow px-2 py-1.5', className)} {...props} />
 ));
 DropdownMenuLabel.displayName = 'DropdownMenuLabel';

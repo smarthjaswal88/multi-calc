@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * Sign in and sign up, one component.
- *
- * Errors state what happened and how to fix it, and never apologise. A failed sign-in says
- * "Email or password is incorrect" without revealing which — the server returns one message for
- * both cases, and the interface does not undo that.
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -44,8 +36,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const error = mutation.error instanceof ApiError ? mutation.error : null;
   const emailError = error?.fieldMessage('email');
   const passwordError = error?.fieldMessage('password');
-  // A failure with no field path is a form-level problem: wrong credentials, or an address
-  // already registered.
+
   const formError = error && !emailError && !passwordError ? error.message : null;
 
   return (

@@ -12,26 +12,17 @@ const OPTIONS = [
   { value: 'system', label: 'System', Icon: Monitor },
 ] as const;
 
-/**
- * Light / dark / system.
- *
- * Renders a placeholder until mounted: the resolved theme is unknown during server rendering,
- * and marking the wrong segment active for one frame is a visible flicker.
- */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  // Not useState+useEffect: see useHydrated. The resolved theme is unknown while the server
-  // renders, and marking the wrong segment active for one frame is a visible flicker.
+
   const mounted = useHydrated();
 
   return (
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      // The caller may stack the segments — a collapsed sidebar has no room for three across.
+
       className={cn(
-        // gap matches the inset padding, so the active segment sits in an even 2px well however
-        // the group is oriented — the same treatment as the discount control's ToggleGroup.
         "inline-flex w-full gap-0.5 rounded-md border border-sidebar-border bg-card p-0.5",
         className,
       )}

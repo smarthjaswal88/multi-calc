@@ -1,11 +1,3 @@
-/**
- * @multi-calc/calc — the shared calculation engine.
- *
- * Consumed by the API, which computes and persists every total, and by the web application,
- * which uses the types, schemas, and formatters only. The web app never computes a total:
- * the server is the single source of truth for every figure a user sees.
- */
-
 export {
   CURRENCIES,
   CURRENCY_CODES,

@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * The document's currency.
- *
- * Editable while the document has no line items, locked the moment one exists. The reason is
- * concrete: a draft holding 10000 minor units as USD is $100.00, and reading that same integer
- * as JPY makes it ¥10,000 — a hundredfold re-denomination from a single dropdown change, with no
- * visible sign anything happened.
- *
- * The locked state reads as settled rather than broken, and says why. A disabled control with no
- * explanation is the thing users file bugs about.
- */
-
 import { Lock } from 'lucide-react';
 import {
   Select,

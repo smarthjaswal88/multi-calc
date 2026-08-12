@@ -33,9 +33,7 @@ const AlertDialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-border bg-card p-5 shadow-lg outline-none',
-        // Scale and opacity only — see the note in dialog.tsx: in Tailwind v4 the centring
-        // -translate-x-1/2 lives on the `translate` property, which composes with the keyframe's
-        // `transform`, so re-adding the offset via slide-in-from-*-1/2 would double it.
+
         'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
         'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
         className,

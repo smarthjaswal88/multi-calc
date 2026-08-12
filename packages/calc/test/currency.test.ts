@@ -1,10 +1,3 @@
-/**
- * Proof that nothing in the engine assumes two decimal places.
- *
- * The same *decimal* inputs are pushed through parse → compute → format in a zero-decimal, a
- * two-decimal, and a three-decimal currency. Each must round to its own minor unit.
- */
-
 import { describe, expect, it } from 'vitest';
 import { CURRENCIES, CURRENCY_CODES, getCurrency, minorUnitsPerMajor } from '../src/currency.js';
 import { computeDocument } from '../src/document.js';
@@ -39,8 +32,6 @@ describe('the currency table', () => {
 });
 
 describe('the same line across currencies', () => {
-  // qty 3 · unit price 9.99 · 7.5% discount · 8.25% tax — chosen because both rounding
-  // points engage in a two-decimal currency.
   function computeIn(code: 'USD' | 'KWD') {
     return computeDocument([
       {
@@ -57,9 +48,9 @@ describe('the same line across currencies', () => {
     const { lines } = computeIn('USD');
     expect(lines[0]).toEqual({
       lineSubtotalMinor: 2997,
-      discountAmountMinor: 225, // 224.775 → 225 cents
+      discountAmountMinor: 225,
       afterDiscountMinor: 2772,
-      taxAmountMinor: 229, // 228.69  → 229 cents
+      taxAmountMinor: 229,
       lineTotalMinor: 3001,
     });
     expect(formatMoney(3001, 'USD')).toBe('$30.01');
@@ -68,11 +59,11 @@ describe('the same line across currencies', () => {
   it('rounds to fils in KWD, keeping a third decimal place', () => {
     const { lines } = computeIn('KWD');
     expect(lines[0]).toEqual({
-      lineSubtotalMinor: 29970, // 29.970
-      discountAmountMinor: 2248, // 2247.75 → 2248 fils, a precision USD cannot hold
+      lineSubtotalMinor: 29970,
+      discountAmountMinor: 2248,
       afterDiscountMinor: 27722,
-      taxAmountMinor: 2287, // 2286.065 → 2287
-      lineTotalMinor: 30009, // 30.009
+      taxAmountMinor: 2287,
+      lineTotalMinor: 30009,
     });
     expect(formatMoney(30009, 'KWD')).toMatch(/30\.009/);
   });
@@ -98,15 +89,14 @@ describe('the same line across currencies', () => {
   });
 
   it('rounds a fractional yen amount to a whole yen', () => {
-    // 3.5% of ¥1,000 is ¥35 exactly; 3.33% is ¥33.30 and must land on ¥33.
     const { lines } = computeDocument([
       {
         quantity: 1,
         unitPriceMinor: 1000,
         discountType: 'NONE',
-        taxPercentBp: 333, // 3.33%
+        taxPercentBp: 333,
       },
     ]);
-    expect(lines[0]!.taxAmountMinor).toBe(33); // 33.3 → 33, no fractional yen
+    expect(lines[0]!.taxAmountMinor).toBe(33);
   });
 });

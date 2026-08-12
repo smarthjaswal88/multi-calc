@@ -1,11 +1,3 @@
-/**
- * The typed API client.
- *
- * Two responsibilities beyond fetching: send credentials so the session cookie travels, and
- * normalise every failure into one shape so a caller can map a field path back to the row that
- * produced it without knowing which endpoint failed.
- */
-
 import type { CurrencyCode, DiscountType } from '@multi-calc/calc';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -39,18 +31,10 @@ export class ApiError extends Error {
     this.fields = fields;
   }
 
-  /**
-   * True only for the lifecycle rule, which the UI answers with a Refresh action.
-   *
-   * A blocked cross-origin request is FORBIDDEN, not CONFLICT — it used to borrow this code because
-   * no forbidden member existed, so a CSRF rejection surfaced as "the document changed, refresh".
-   * There is nothing to refresh, and the advice was misleading.
-   */
   get isFinalizedConflict(): boolean {
     return this.code === 'CONFLICT';
   }
 
-  /** The message for a given field path, if the server named one. */
   fieldMessage(path: string): string | undefined {
     return this.fields.find((field) => field.path === path)?.message;
   }
@@ -95,8 +79,6 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   return payload as T;
 }
-
-// ---------------------------------------------------------------------------- shapes
 
 export interface LineDto {
   id: string;
@@ -162,11 +144,11 @@ export interface ReportGroupDto {
 export interface ReportDto {
   range: { from: string; to: string };
   includeDrafts: boolean;
-  /** Always true — archiving removes a document from the report. */
+
   excludesArchived: boolean;
   documentCount: number;
   currencyCount: number;
-  /** True when the breakdown list was capped by the server. The grouped totals stay complete. */
+
   breakdownTruncated?: boolean;
   groups: ReportGroupDto[];
   documents?: DocumentDto[];
@@ -183,7 +165,6 @@ export interface LineInputDto {
 }
 
 export interface ListParams {
-  /** True fetches only archived documents; the default excludes them. */
   archived?: boolean;
   status?: 'draft' | 'finalized' | 'all';
   currency?: CurrencyCode;
@@ -203,8 +184,6 @@ function toQuery(params: Record<string, string | number | boolean | undefined>):
   const query = search.toString();
   return query ? `?${query}` : '';
 }
-
-// ---------------------------------------------------------------------------- endpoints
 
 export const api = {
   auth: {
@@ -229,13 +208,7 @@ export const api = {
     remove: (id: string) => request<void>('DELETE', `/api/documents/${id}`),
     finalize: (id: string) =>
       request<{ document: DocumentDto }>('POST', `/api/documents/${id}/finalize`),
-    /**
-     * The issue date is sent explicitly, in the caller's timezone.
-     *
-     * The server defaults to the UTC date when no body arrives, which for anyone east of Greenwich
-     * names yesterday for part of every day — in IST, any duplicate made before 05:30. The server
-     * gained the ability to accept a date; without this argument that fix did nothing.
-     */
+
     duplicate: (id: string, issueDate: string) =>
       request<{ document: DocumentDto }>('POST', `/api/documents/${id}/duplicate`, { issueDate }),
     archive: (id: string) =>

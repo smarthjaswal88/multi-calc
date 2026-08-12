@@ -68,12 +68,6 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
     <th
       ref={ref}
       className={cn(
-        // Labels never wrap: "Unit price" breaking to two lines is what makes the header row
-        // twice as tall as it needs to be, and the label is also the column's width floor.
-        //
-        // 0.8125rem/600 rather than the 0.6875rem/500 eyebrow treatment: a column name is a
-        // navigational label a reader returns to, not a micro-caption. Tracking eases off as the
-        // size and weight come up, since wide letterspacing on heavier type reads as shouting.
         'h-10 whitespace-nowrap px-3 text-left align-middle text-[0.8125rem] font-semibold uppercase tracking-[0.04em] text-foreground',
         numeric && 'text-right',
         className,
@@ -92,7 +86,7 @@ export const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, numeric = false, ...props }, ref) => (
     <td
       ref={ref}
-      // 'tabular' is a global base class: mono face + tabular figures, so columns align on the decimal.
+
       className={cn('px-3 py-2 align-middle', numeric && 'text-right tabular', className)}
       {...props}
     />

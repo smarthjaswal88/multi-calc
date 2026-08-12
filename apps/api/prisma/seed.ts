@@ -1,17 +1,3 @@
-/**
- * Seed script.
- *
- * Creates a demo account holding the specification's reference document plus a spread of
- * sibling documents across currencies, statuses, and three months of issue dates — enough for
- * the document list, the summary report's per-currency grouping, and the print view to be
- * exercised with realistic data.
- *
- * Every total here is computed by @multi-calc/calc rather than written by hand. A seed with
- * hardcoded totals would happily contradict the engine; this one cannot.
- *
- * Idempotent: re-running replaces the demo user's documents.
- */
-
 import 'dotenv/config';
 import { guardDestructive } from '../src/config/guardDestructive.js';
 import bcrypt from 'bcryptjs';
@@ -24,7 +10,6 @@ import {
 } from '@multi-calc/calc';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
-// Writes to the database — refuse to touch production. See src/config/guardDestructive.ts.
 guardDestructive('prisma/seed.ts');
 
 const prisma = new PrismaClient();
@@ -32,7 +17,6 @@ const prisma = new PrismaClient();
 const DEMO_EMAIL = 'demo@multicalc.app';
 const DEMO_PASSWORD = 'demo1234';
 
-/** A line as authored in this file: amounts in major units, percentages as human percents. */
 interface SeedLine {
   description: string;
   quantity: number;
@@ -51,10 +35,6 @@ interface SeedDocument {
   lines: SeedLine[];
 }
 
-/**
- * The specification's reference document, left as a draft so a reviewer can edit it and watch
- * the totals recompute. Expected grand total: $421.50.
- */
 const REFERENCE_DOCUMENT: SeedDocument = {
   title: 'Q3 Platform Retainer',
   customer: 'Northwind Trading Co.',
@@ -71,7 +51,6 @@ const REFERENCE_DOCUMENT: SeedDocument = {
 const DOCUMENTS: SeedDocument[] = [
   REFERENCE_DOCUMENT,
 
-  // A finalized twin of the reference, so the read-only record state is visible immediately.
   {
     title: 'Q2 Platform Retainer',
     customer: 'Northwind Trading Co.',
@@ -149,8 +128,6 @@ const DOCUMENTS: SeedDocument[] = [
     ],
   },
 
-  // The zero-decimal currency. Any layout or formatter that assumes two decimal places will
-  // show its seam on this document.
   {
     title: 'Localization package — JA',
     customer: 'Sakura Robotics KK',
@@ -201,7 +178,6 @@ const DOCUMENTS: SeedDocument[] = [
     ],
   },
 
-  // The three-decimal currency, exercising the other end of the exponent range.
   {
     title: 'Infrastructure retainer — Q3',
     customer: 'Gulf Petroleum Services',
@@ -216,7 +192,6 @@ const DOCUMENTS: SeedDocument[] = [
   },
 ];
 
-/** Translate an authored line into the storage shape, in minor units and basis points. */
 function toStorage(line: SeedLine, currency: CurrencyCode) {
   const hasPercent = line.discountPercent !== undefined;
   const hasFixed = line.discountFixed !== undefined;
@@ -241,7 +216,6 @@ function toStorage(line: SeedLine, currency: CurrencyCode) {
 async function createDocument(userId: string, seed: SeedDocument) {
   const stored = seed.lines.map((line) => toStorage(line, seed.currency));
 
-  // The engine is the only source of every figure below.
   const { lines: computed, totals } = computeDocument(stored);
 
   const document = await prisma.document.create({
@@ -285,7 +259,6 @@ async function main() {
     create: { email: DEMO_EMAIL, passwordHash, defaultCurrency: 'USD' },
   });
 
-  // Cascades to line items.
   const removed = await prisma.document.deleteMany({ where: { userId: user.id } });
   if (removed.count > 0) {
     console.log(`Cleared ${removed.count} existing document(s) for ${DEMO_EMAIL}\n`);
@@ -307,7 +280,6 @@ async function main() {
 
   console.log(rows.join('\n'));
 
-  // The one figure that must be exactly right.
   const reference = await prisma.document.findFirst({
     where: { userId: user.id, title: REFERENCE_DOCUMENT.title },
   });

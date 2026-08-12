@@ -3,14 +3,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-/**
- * Page controls for a server-paginated list.
- *
- * Both list screens previously requested a single large page and rendered no controls at all,
- * while displaying the server's total — so 60 documents showed "60 documents" above 50 rows with
- * no way to reach the other 10. The API paginated correctly the whole time; the interface simply
- * never used it.
- */
 export function Pager({
   page,
   pageSize,

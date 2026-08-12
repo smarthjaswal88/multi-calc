@@ -20,10 +20,6 @@ export const createDocumentSchema = z.object({
   currency: currencyCodeSchema.optional(),
 });
 
-/**
- * A patch. Every field optional, but at least one required — an empty PATCH is a client bug
- * worth surfacing rather than a no-op that returns 200.
- */
 export const patchDocumentSchema = z
   .object({
     title: title.optional(),
@@ -35,18 +31,11 @@ export const patchDocumentSchema = z
     message: 'Include at least one field to update.',
   });
 
-/**
- * Parsed from query-string text rather than coerced.
- *
- * `z.coerce.boolean()` would read the string "false" as true, because every non-empty string is
- * truthy — the same trap the report's includeDrafts flag had to avoid.
- */
 const booleanish = z
   .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
   .transform((value) => value === true || value === 'true' || value === '1');
 
 export const listQuerySchema = z.object({
-  /** True fetches only archived documents; the default excludes them entirely. */
   archived: booleanish.default(false),
   status: z.enum(['draft', 'finalized', 'all']).default('all'),
   currency: currencyCodeSchema.optional(),

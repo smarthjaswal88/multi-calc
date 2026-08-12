@@ -10,7 +10,6 @@ import {
 
 const usdLine = lineInputSchema('USD');
 
-/** The first error message for a given field path. */
 function messageFor(result: { success: boolean; error?: { issues: readonly { path: (string | number)[]; message: string }[] } }, path: string): string | undefined {
   return result.error?.issues.find((i) => i.path.join('.') === path)?.message;
 }
@@ -110,7 +109,6 @@ describe('line validation — discount rules', () => {
   });
 
   it('rejects a fixed discount larger than the line subtotal, naming the subtotal', () => {
-    // qty 2 × $100.00 = $200.00 subtotal; a $250.00 discount must be refused.
     const result = usdLine.safeParse(
       valid({ discountType: 'FIXED', discountFixedMinor: 25000 }),
     );
@@ -177,9 +175,6 @@ describe('document metadata validation', () => {
   });
 
   it('rejects a correctly formatted date that does not exist', () => {
-    // Date.parse('2026-06-31') succeeds and rolls forward to 1 July, so a parse check would
-    // accept this and then store a date in a different month than the one submitted —
-    // quietly moving the document out of the June reporting range.
     for (const impossible of ['2026-06-31', '2026-02-30', '2025-02-29', '2026-04-31']) {
       const result = documentMetadataSchema.safeParse({ ...validMeta, issueDate: impossible });
       expect(result.success, `${impossible} should be rejected`).toBe(false);
@@ -297,7 +292,7 @@ describe('finalize preconditions', () => {
       { position: 2, quantity: -1, unitPriceMinor: -100 },
       { position: 3, quantity: 5, unitPriceMinor: 100 },
     ]);
-    expect(issues).toHaveLength(3); // line 1 qty, line 2 qty, line 2 price
+    expect(issues).toHaveLength(3);
     expect(issues.map((i) => i.position)).toEqual([1, 2, 2]);
   });
 
@@ -332,9 +327,6 @@ describe('credentials validation', () => {
   });
 
   it('counts BYTES, not characters — 50 accented characters is 100 bytes', () => {
-    // 'é' is a single UTF-16 code unit but two UTF-8 bytes, so .length reads 50 while bcrypt sees
-    // 100 and silently keeps only the first 72. A character-based limit would have let this
-    // through, making two different passwords hash identically.
     const accented = 'é'.repeat(50);
     expect(accented.length).toBe(50);
     expect(new TextEncoder().encode(accented).length).toBe(100);

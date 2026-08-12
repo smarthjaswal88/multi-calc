@@ -1,21 +1,7 @@
-/**
- * Format/parse round trips across every currency.
- *
- * These exist because of a defect this suite did not previously catch. `formatMoney` is
- * locale-aware, so a euro amount renders as `3200,00` — comma as the decimal point. The old
- * `parseMoney` stripped every comma as a group separator, so that string came back as
- * 32,000,000 minor units: one hundred times too large, with no error raised. The value was
- * well inside every bound, so nothing downstream would have noticed.
- *
- * The rule these tests enforce: for every currency, a formatted amount must parse back to the
- * amount it came from, in grouped and ungrouped form alike.
- */
-
 import { describe, expect, it } from 'vitest';
 import { CURRENCY_CODES, getCurrency } from '../src/currency.js';
 import { formatMoney, parseMoney, toInputString } from '../src/money.js';
 
-/** Values chosen to exercise grouping, sub-unit amounts, and zero in each exponent. */
 const SAMPLES = [0, 1, 50, 999, 1250, 12400, 124050, 320000, 59000000];
 
 describe('toInputString is the exact inverse of parseMoney', () => {
@@ -56,7 +42,6 @@ describe('formatMoney output parses back to its own value', () => {
 
 describe('the specific defect that motivated these tests', () => {
   it('parses a comma-decimal euro amount at its true value, not 100x', () => {
-    // EUR 3,200.00 held as 320000 minor renders as "3200,00" in de-DE.
     expect(parseMoney('3200,00', 'EUR')).toBe(320000);
   });
 
@@ -73,7 +58,6 @@ describe('the specific defect that motivated these tests', () => {
   });
 
   it('treats a three-digit run after the euro group separator as grouping', () => {
-    // "3.200" in German means three thousand two hundred, not three and a fifth.
     expect(parseMoney('3.200', 'EUR')).toBe(320000);
   });
 });
@@ -118,7 +102,6 @@ describe('separator resolution rules', () => {
   });
 
   it('still refuses decimals in a zero-decimal currency', () => {
-    // ',' is ja-JP's group separator, but one digit behind it cannot be a group.
     expect(() => parseMoney('1240,5', 'JPY')).toThrow("don't use decimals");
     expect(() => parseMoney('1240.5', 'JPY')).toThrow("don't use decimals");
   });
@@ -135,16 +118,11 @@ describe('separator resolution rules', () => {
 
 describe('malformed grouping is refused rather than silently collapsed', () => {
   it('rejects a separator run that is not a real group', () => {
-    // Treating any repeated separator as grouping would collapse this to 123 and read it as
-    // $1.23 — a wrong value accepted in silence.
     expect(() => parseMoney('1.2.3', 'USD')).toThrow('Enter a valid amount.');
     expect(() => parseMoney('1,2,3', 'USD')).toThrow('Enter a valid amount.');
   });
 
   it('prefers a decimal reading when a group reading is impossible, and reports it that way', () => {
-    // ',' groups in ja-JP, but two trailing digits cannot be a group — so this is read as a
-    // decimal, which yen has no room for. The decimals message is more useful here than a
-    // generic one, because it names why the value is wrong.
     expect(() => parseMoney('1,23', 'JPY')).toThrow("don't use decimals");
     expect(() => parseMoney('12,3456', 'JPY')).toThrow("don't use decimals");
   });
@@ -158,8 +136,6 @@ describe('malformed grouping is refused rather than silently collapsed', () => {
   });
 
   it('reads a trailing separator leniently, the way a numeric field does', () => {
-    // A user who has typed "1," and submitted means 1. Number('1.') is 1 in JS, and this
-    // matches. There is no ambiguity to protect against.
     expect(parseMoney('1,', 'USD')).toBe(100);
     expect(parseMoney('1.', 'USD')).toBe(100);
   });
@@ -182,8 +158,6 @@ describe('malformed grouping is refused rather than silently collapsed', () => {
 
 describe('a minus is only a sign where a sign can be', () => {
   it('rejects a minus embedded between digits', () => {
-    // Both of these previously parsed: "12-34" became −123400 and "1-2" became −1200. A mistyped
-    // figure silently turned into a large negative amount that satisfied every downstream bound.
     expect(() => parseMoney('12-34', 'USD')).toThrow('Enter a valid amount.');
     expect(() => parseMoney('1-2', 'USD')).toThrow('Enter a valid amount.');
   });
@@ -199,15 +173,11 @@ describe('a minus is only a sign where a sign can be', () => {
   });
 
   it('rejects an unbalanced parenthesis rather than stripping it', () => {
-    // The character filter used to discard the stray bracket, so "(12" parsed as 12 — a typo
-    // silently becoming a value.
     expect(() => parseMoney('(12', 'USD')).toThrow('Enter a valid amount.');
     expect(() => parseMoney('12)', 'USD')).toThrow('Enter a valid amount.');
   });
 
   it('rejects parentheses combined with a minus', () => {
-    // Each means negative, so together they cancel and "(-50)" is arguably positive fifty. Nobody
-    // types that intending either reading.
     expect(() => parseMoney('(-50)', 'USD')).toThrow('Enter a valid amount.');
     expect(() => parseMoney('(−50)', 'USD')).toThrow('Enter a valid amount.');
   });

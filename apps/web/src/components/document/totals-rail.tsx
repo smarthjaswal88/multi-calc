@@ -1,16 +1,5 @@
 "use client";
 
-/**
- * The sticky totals rail.
- *
- * Never scrolls out of view — the whole point is watching the grand total respond as you edit.
- * The Finalize button sits at the bottom, which is the natural end of the downward reading
- * motion through the tape.
- *
- * The rounding policy lives behind a `?` here, in plain words rather than as a claim in a README
- * nobody opens.
- */
-
 import { HelpCircle } from "lucide-react";
 import {
   Popover,
@@ -30,7 +19,7 @@ import type { DocumentDto } from "@/lib/api";
 
 interface TotalsRailProps {
   document: DocumentDto;
-  /** True while a mutation is in flight, so every derived figure mutes and settles. */
+
   pending?: boolean;
   footer?: React.ReactNode;
   className?: string;
@@ -42,16 +31,9 @@ export function TotalsRail({
   footer,
   className,
 }: TotalsRailProps) {
-  // A server-supplied code the engine does not know would throw inside getCurrency, taking the
-  // whole document page down. Fall back rather than crash on a value we do not control.
   const currency = isCurrencyCode(document.currency) ? document.currency : DEFAULT_CURRENCY;
   const { exponent } = getCurrency(currency);
 
-  // Zero-decimal currencies need a unit noun ("the nearest whole yen"), which was previously got
-  // by stripping the nationality off the display name with a regex — a rule that silently produces
-  // "the nearest whole Won" for KRW and breaks outright for any currency whose name is not
-  // "<Nationality> <unit>". The noun is a property of the currency, so it is stated once here
-  // rather than derived from prose.
   const MINOR_UNIT_NOUN: Partial<Record<CurrencyCode, string>> = {
     JPY: 'yen',
     KRW: 'won',

@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 
 export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    // Rules, not shadows: the border is the only separation this direction allows.
     <div
       ref={ref}
       className={cn('rounded-md border border-border bg-card text-foreground', className)}

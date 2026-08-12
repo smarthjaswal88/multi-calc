@@ -1,21 +1,5 @@
 'use client';
 
-/**
- * Server state.
- *
- * The application keeps no parallel copy of a document and derives no totals locally. Every
- * mutation returns the full recomputed document, and the cache is replaced with it — which is
- * how "the client must not be the source of truth" is enforced structurally rather than by
- * discipline.
- *
- * The editing loop:
- *   1. the user edits a field; local input state updates immediately, so typing is never blocked
- *   2. the change is sent on blur or Enter
- *   3. every derived figure enters a pending presentation — muted, gently settling
- *   4. the response carries the whole document; the cache is replaced and the figures settle
- *   5. a rejection maps its field paths back to the originating row
- */
-
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -37,8 +21,6 @@ export const keys = {
     ['report', from, to, includeDrafts] as const,
 };
 
-// ---------------------------------------------------------------------------------- auth
-
 export function useMe(): UseQueryResult<UserDto | null> {
   return useQuery({
     queryKey: keys.me,
@@ -47,7 +29,6 @@ export function useMe(): UseQueryResult<UserDto | null> {
         const { user } = await api.auth.me();
         return user;
       } catch (error) {
-        // Not signed in is a legitimate answer, not a failure to report.
         if (error instanceof ApiError && error.status === 401) return null;
         throw error;
       }
@@ -55,8 +36,6 @@ export function useMe(): UseQueryResult<UserDto | null> {
     staleTime: 60_000,
   });
 }
-
-// ----------------------------------------------------------------------------- documents
 
 export function useDocuments(params: ListParams) {
   return useQuery({
@@ -76,25 +55,13 @@ export function useReport(from: string, to: string, includeDrafts: boolean) {
   return useQuery({
     queryKey: keys.report(from, to, includeDrafts),
     queryFn: () => api.reports.summary({ from, to, includeDrafts, includeDocuments: true }),
-    // The range is only valid forward; the screen refuses to fire an inverted one.
+
     enabled: Boolean(from && to) && to >= from,
   });
 }
 
-/**
- * Prefix marking a row that exists only in the local cache, awaiting the server's answer.
- *
- * Such a row has no real id, so editing or deleting it would address a document row that does
- * not exist. The table renders these as read-only until the server replies with the real row.
- */
 export const OPTIMISTIC_PREFIX = 'optimistic:';
 
-/**
- * A monotonic counter, not a timestamp.
- *
- * `Math.trunc(performance.now())` can repeat: two adds inside the same millisecond produced the
- * same id, and React would treat two distinct pending rows as one. A counter cannot collide.
- */
 let optimisticCounter = 0;
 function nextOptimisticId(): string {
   optimisticCounter += 1;
@@ -109,37 +76,15 @@ interface MutationContext {
   previous?: DocumentDto;
 }
 
-/**
- * Shared mutation plumbing for anything that returns a document.
- *
- * A conflict is the interesting case: it almost always means this tab is stale because the
- * document was finalized elsewhere. So the message is surfaced and the document refetched,
- * which flips the interface into its read-only presentation without the user having to reload.
- *
- * OPTIMISTIC BOUNDARY
- * -------------------
- * An `optimistic` function may update the cached document before the request completes, and
- * what it is allowed to change is deliberately narrow: **which rows exist and in what order**.
- * It must never touch a computed figure.
- *
- * That line is not fussiness. Predicting the totals locally would mean a second implementation
- * of the discount-and-tax arithmetic in the browser — precisely the duplication the single
- * shared module exists to prevent, and precisely what "the client must not be the source of
- * truth" forbids. So structure appears instantly while the figures visibly dim and wait, which
- * is an honest depiction of what is actually known at that moment.
- */
 function useDocumentMutation<TArgs>(
   mutationFn: (args: TArgs) => Promise<{ document: DocumentDto }>,
   options: {
     successMessage?: string | ((document: DocumentDto) => string);
-    /** Structure-only cache update. Returns the document as it should appear immediately. */
+
     optimistic?: (document: DocumentDto, args: TArgs) => DocumentDto;
-    /**
-     * True when the caller renders VALIDATION_ERROR messages itself, against a specific field or
-     * row. Only then is the toast suppressed — otherwise the failure would be invisible.
-     */
+
     inlineValidation?: boolean;
-    /** Reads the document id out of the mutation arguments. */
+
     documentIdOf?: (args: TArgs) => string;
   } = {},
 ) {
@@ -151,7 +96,7 @@ function useDocumentMutation<TArgs>(
       if (!options.optimistic || !options.documentIdOf) return {};
 
       const key = keys.document(options.documentIdOf(args));
-      // Stop an in-flight refetch from landing after our optimistic write and reverting it.
+
       await queryClient.cancelQueries({ queryKey: key });
 
       const previous = queryClient.getQueryData<DocumentDto>(key);
@@ -172,8 +117,6 @@ function useDocumentMutation<TArgs>(
       if (message) toast.success(message);
     },
     onError: (error, variables, context) => {
-      // Roll the optimistic write back before anything else, so the interface never sits
-      // showing a row the server refused.
       if (context?.previous && options.documentIdOf) {
         queryClient.setQueryData(
           keys.document(options.documentIdOf(variables)),
@@ -186,8 +129,6 @@ function useDocumentMutation<TArgs>(
         return;
       }
 
-      // A refused cross-origin request has nothing to refresh, so it must not be handled as a
-      // stale document.
       if (error.code === 'FORBIDDEN') {
         toast.error(error.message);
         return;
@@ -212,13 +153,6 @@ function useDocumentMutation<TArgs>(
         return;
       }
 
-      // A validation error is only suppressed where the caller actually renders it inline.
-      //
-      // Previously ALL validation errors were suppressed, on the assumption that something
-      // downstream displayed them. For line edits that is true — the row shows the message. But
-      // for anything with no row to attach to, nothing displayed it at all: hitting the 200-line
-      // cap or the document-total ceiling produced no toast, no inline message, and no indication
-      // the click had done anything. Silence is the worst possible report.
       if (error.code !== 'VALIDATION_ERROR' || !options.inlineValidation) {
         toast.error(error.message);
       }
@@ -237,8 +171,7 @@ export function usePatchDocument() {
   return useDocumentMutation(
     ({ documentId, patch }: { documentId: string; patch: Parameters<typeof api.documents.patch>[1] }) =>
       api.documents.patch(documentId, patch),
-    // The editor renders field-level messages beside title, customer and issue date. A failure the
-    // server does not attribute to a field still toasts, via the fallback in useDocumentMutation.
+
     { documentIdOf: (args) => args.documentId, inlineValidation: true },
   );
 }
@@ -251,19 +184,11 @@ export function useFinalizeDocument() {
 
 export function useDuplicateDocument() {
   return useDocumentMutation(
-    // todayIso() is the caller's local date, not UTC — see api.documents.duplicate.
     ({ documentId }: { documentId: string }) => api.documents.duplicate(documentId, todayIso()),
     { successMessage: 'Draft created.' },
   );
 }
 
-/**
- * Archive a finalized document.
- *
- * The toast carries an Undo action, so archiving is reversible at the point of action rather than
- * only via a trip to the Archive screen. Both the archived list and the report are invalidated,
- * because the document leaves one and joins the other.
- */
 export function useArchiveDocument() {
   const queryClient = useQueryClient();
   const unarchive = useUnarchiveDocument();
@@ -288,12 +213,6 @@ export function useArchiveDocument() {
   });
 }
 
-/**
- * Restore an archived document.
- *
- * The server keeps the status untouched — an archived finalized document comes back finalized —
- * so there is nothing for the client to decide here.
- */
 export function useUnarchiveDocument() {
   const queryClient = useQueryClient();
 
@@ -327,9 +246,6 @@ export function useDeleteDocument() {
   });
 }
 
-// --------------------------------------------------------------------------------- lines
-
-/** A placeholder row. Computed figures are left at zero and shown as pending, never guessed. */
 function placeholderLine(input: LineInputDto, position: number): LineDto {
   return {
     id: `${OPTIMISTIC_PREFIX}${position}-${nextOptimisticId()}`,
@@ -355,8 +271,7 @@ export function useCreateLine() {
       api.lines.create(documentId, input),
     {
       documentIdOf: (args) => args.documentId,
-      // The row appears at once. Its amounts, and the document totals, stay as they were and
-      // render dimmed until the server sends the computed figures.
+
       optimistic: (document, { input }) => {
         const lines = document.lines ?? [];
         return {
@@ -383,10 +298,9 @@ export function useUpdateLine() {
     }) => api.lines.update(documentId, lineId, input),
     {
       documentIdOf: (args) => args.documentId,
-      // The editor renders this against the row being edited.
+
       inlineValidation: true,
-      // Only the inputs the user just typed are echoed back. Every derived figure on the row is
-      // left untouched and dims, because the new ones are not knowable here.
+
       optimistic: (document, { lineId, input }) => ({
         ...document,
         lines: (document.lines ?? []).map((line) =>
@@ -436,9 +350,7 @@ export function useReorderLines() {
       api.lines.reorder(documentId, order),
     {
       documentIdOf: (args) => args.documentId,
-      // The only fully honest optimistic update in the app: reordering cannot change any
-      // amount, so the reordered rows are exactly what the server will return. No figure is
-      // predicted, so nothing needs to dim.
+
       optimistic: (document, { order }) => {
         const byId = new Map((document.lines ?? []).map((line) => [line.id, line]));
         return {
